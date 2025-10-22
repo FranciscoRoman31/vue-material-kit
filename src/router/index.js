@@ -23,6 +23,7 @@ import ElDropdowns from "../layouts/sections/elements/dropdowns/DropdownsView.vu
 import ElProgressBars from "../layouts/sections/elements/progress-bars/ProgressBarsView.vue";
 import ElToggles from "../layouts/sections/elements/toggles/TogglesView.vue";
 import ElTypography from "../layouts/sections/elements/typography/TypographyView.vue";
+import SignInCoverView from "../views/LandingPages/SignIn/SignInCoverView.vue";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -50,6 +51,11 @@ const router = createRouter({
       path: "/pages/landing-pages/basic",
       name: "signin-basic",
       component: SignInBasicView,
+    },
+    {
+      path: "/pages/landing-pages/signin-cover",
+      name: "signin-cover",
+      component: SignInCoverView,
     },
     {
       path: "/sections/page-sections/page-headers",
