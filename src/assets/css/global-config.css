@@ -1,0 +1,182 @@
+/* Configuración global de tipografía y colores para toda la aplicación */
+
+/* Variables CSS globales que se aplicarán a toda la aplicación */
+:root {
+  --header-color: #28a745;
+  --button-color: #198754;
+  --bg-color: #f8f9fa;
+  --text-color: #333333;
+  --title-color: #212529;
+  --paragraph-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --paragraph-font-size: 16px;
+  --title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --title-font-size: 20px;
+}
+
+/* Aplicar tipografía global a toda la aplicación */
+body {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+  background-color: var(--bg-color) !important;
+}
+
+/* Aplicar específicamente a la página de ejemplo */
+.example-page.texto-personalizable,
+.example-page.texto-personalizable * {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+}
+
+/* Aplicar tipografía de títulos a todos los títulos */
+h1, h2, h3, h4, h5, h6,
+.title, .heading, .header-title, .page-title,
+.card-title, .section-title, .feature-title {
+  font-family: var(--title-font-family) !important;
+  font-size: var(--title-font-size) !important;
+  color: var(--title-color) !important;
+}
+
+/* Aplicar específicamente a títulos de la página de ejemplo */
+.example-page.texto-personalizable h1,
+.example-page.texto-personalizable h2,
+.example-page.texto-personalizable h3,
+.example-page.texto-personalizable h4,
+.example-page.texto-personalizable h5,
+.example-page.texto-personalizable h6,
+.example-page.texto-personalizable .site-title,
+.example-page.texto-personalizable .hero-title,
+.example-page.texto-personalizable .section-title,
+.example-page.texto-personalizable .feature-title {
+  font-family: var(--title-font-family) !important;
+  font-size: var(--title-font-size) !important;
+  color: var(--title-color) !important;
+}
+
+/* Aplicar tipografía de párrafos a texto general */
+p, span, div, label, a, li, td, th,
+.text, .description, .content, .paragraph,
+.form-label, .nav-link, .footer-link {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+}
+
+/* Aplicar colores a botones */
+.btn, .button, .cta-button, .submit-button,
+button[type="submit"], button[type="button"] {
+  background-color: var(--button-color) !important;
+  border-color: var(--button-color) !important;
+  color: white !important;
+}
+
+.btn:hover, .button:hover, .cta-button:hover, .submit-button:hover,
+button[type="submit"]:hover, button[type="button"]:hover {
+  background-color: var(--header-color) !important;
+  border-color: var(--header-color) !important;
+}
+
+/* Aplicar colores a enlaces */
+a, .link, .nav-link {
+  color: var(--header-color) !important;
+}
+
+a:hover, .link:hover, .nav-link:hover {
+  color: var(--button-color) !important;
+}
+
+/* Aplicar colores a headers y barras de navegación */
+.navbar, .header, .top-bar, .navigation {
+  background-color: var(--header-color) !important;
+}
+
+/* Aplicar colores a cards y contenedores */
+.card, .container, .wrapper, .content-wrapper {
+  background-color: white !important;
+  color: var(--text-color) !important;
+}
+
+/* Aplicar colores a formularios */
+.form-control, input, textarea, select {
+  border-color: #dee2e6 !important;
+  color: var(--text-color) !important;
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+}
+
+.form-control:focus, input:focus, textarea:focus, select:focus {
+  border-color: var(--header-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+}
+
+/* Aplicar colores a elementos específicos de Material Kit */
+.material-kit .card-title {
+  font-family: var(--title-font-family) !important;
+  font-size: var(--title-font-size) !important;
+  color: var(--title-color) !important;
+}
+
+.material-kit .card-body {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+}
+
+.material-kit .btn {
+  background-color: var(--button-color) !important;
+  border-color: var(--button-color) !important;
+}
+
+.material-kit .btn:hover {
+  background-color: var(--header-color) !important;
+  border-color: var(--header-color) !important;
+}
+
+/* Aplicar a elementos de navegación */
+.navbar-nav .nav-link {
+  color: white !important;
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+}
+
+.navbar-brand {
+  font-family: var(--title-font-family) !important;
+  font-size: calc(var(--title-font-size) * 1.2) !important;
+  color: white !important;
+}
+
+/* Aplicar a footers */
+.footer, .site-footer {
+  background-color: var(--title-color) !important;
+  color: white !important;
+}
+
+.footer a, .site-footer a {
+  color: white !important;
+}
+
+/* Aplicar a elementos de lista */
+ul, ol {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+}
+
+/* Aplicar a tablas */
+table {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
+  color: var(--text-color) !important;
+}
+
+table th {
+  font-family: var(--title-font-family) !important;
+  font-size: var(--title-font-size) !important;
+  color: var(--title-color) !important;
+}
+
+/* Asegurar que los cambios se apliquen a elementos dinámicos */
+* {
+  transition: font-family 0.3s ease, font-size 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+}

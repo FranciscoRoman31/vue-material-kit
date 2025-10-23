@@ -138,6 +138,17 @@ document.addEventListener('DOMContentLoaded', function() {
         rootElement.style.setProperty('--text-color', colorInputs.text.value);
         rootElement.style.setProperty('--title-color', colorInputs.title.value);
         
+        // Actualizar configuración global si está disponible
+        if (window.globalConfig) {
+            window.globalConfig.updateColors({
+                header: colorInputs.header.value,
+                button: colorInputs.button.value,
+                background: colorInputs.bg.value,
+                text: colorInputs.text.value,
+                title: colorInputs.title.value
+            });
+        }
+        
         // Actualizar vistas previas y códigos hexadecimales
         for (const key in colorInputs) {
             const value = colorInputs[key].value;
@@ -377,6 +388,29 @@ document.addEventListener('DOMContentLoaded', function() {
             fontSizeRange.value = 0;
             primaryFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
             secondaryFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            
+            // Restablecer nuevas tipografías
+            const paragraphFontSelect = document.getElementById('paragraphFont');
+            const paragraphFontSizeSlider = document.getElementById('paragraphFontSize');
+            const titleFontSelect = document.getElementById('titleFont');
+            const titleFontSizeSlider = document.getElementById('titleFontSize');
+            
+            if (paragraphFontSelect) paragraphFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            if (paragraphFontSizeSlider) paragraphFontSizeSlider.value = 16;
+            if (titleFontSelect) titleFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            if (titleFontSizeSlider) titleFontSizeSlider.value = 20;
+            
+            // Restablecer variables CSS de tipografía
+            document.documentElement.style.setProperty('--paragraph-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
+            document.documentElement.style.setProperty('--paragraph-font-size', '16px');
+            document.documentElement.style.setProperty('--title-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
+            document.documentElement.style.setProperty('--title-font-size', '20px');
+            
+            // Actualizar displays
+            const paragraphFontSizeDisplay = document.getElementById('paragraphFontSizeDisplay');
+            const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
+            if (paragraphFontSizeDisplay) paragraphFontSizeDisplay.textContent = '16px';
+            if (titleFontSizeDisplay) titleFontSizeDisplay.textContent = '20px';
             
             // Actualizar la vista
             updateColors();
@@ -643,9 +677,12 @@ document.addEventListener('DOMContentLoaded', function() {
     loadConfigsFromStorage();
     loadFontsFromStorage();
     
-    // Inicializar el formulario de login
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        showNotification('Inicio de sesión simulado', 'success');
-    });
+    // Inicializar el formulario de ejemplo
+    const exampleForm = document.querySelector('.example-form');
+    if (exampleForm) {
+        exampleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            showNotification('Formulario de ejemplo enviado', 'success');
+        });
+    }
 });

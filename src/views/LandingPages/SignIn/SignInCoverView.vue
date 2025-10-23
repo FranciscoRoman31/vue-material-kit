@@ -1,18 +1,188 @@
 <script setup>
 import { onMounted, onUnmounted } from "vue";
 import { useStore } from "vuex";
+import { useGlobalConfig } from "@/composables/useGlobalConfig.js";
 import "@/assets/js/login-script";
 
 const body = document.getElementsByTagName("body")[0];
 const store = useStore();
+const { config, updateColors, updateTypography, resetConfig } = useGlobalConfig();
+
 onMounted(() => {
   store.state.isAbsolute = true;
   body.classList.remove("bg-gray-100");
+  
+  // Aplicar configuración global inmediatamente
+  applyGlobalConfig();
+  
+  // Aplicar configuración desde localStorage
+  applySavedConfig();
+  
+  // Inicializar controles de tipografía
+  initializeFontControls();
+  
+  // Cargar configuración actual en los controles
+  loadCurrentConfig();
 });
 
 onUnmounted(() => {
   body.classList.add("bg-gray-100");
 });
+
+// Función para aplicar configuración global
+function applyGlobalConfig() {
+  const root = document.documentElement;
+  
+  // Aplicar colores
+  root.style.setProperty('--header-color', config.colors.header);
+  root.style.setProperty('--button-color', config.colors.button);
+  root.style.setProperty('--bg-color', config.colors.background);
+  root.style.setProperty('--text-color', config.colors.text);
+  root.style.setProperty('--title-color', config.colors.title);
+  
+  // Aplicar tipografía
+  root.style.setProperty('--paragraph-font-family', config.typography.paragraphFont);
+  root.style.setProperty('--paragraph-font-size', config.typography.paragraphSize);
+  root.style.setProperty('--title-font-family', config.typography.titleFont);
+  root.style.setProperty('--title-font-size', config.typography.titleSize);
+  
+  console.log('Configuración global aplicada:', config);
+}
+
+// Función para aplicar configuración guardada desde localStorage
+function applySavedConfig() {
+  const root = document.documentElement;
+  
+  // Aplicar variables CSS por defecto
+  root.style.setProperty('--paragraph-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
+  root.style.setProperty('--paragraph-font-size', '16px');
+  root.style.setProperty('--title-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
+  root.style.setProperty('--title-font-size', '20px');
+  
+  // Aplicar configuración guardada si existe
+  const savedConfig = localStorage.getItem('globalAppConfig');
+  if (savedConfig) {
+    try {
+      const config = JSON.parse(savedConfig);
+      if (config.typography) {
+        root.style.setProperty('--paragraph-font-family', config.typography.paragraphFont);
+        root.style.setProperty('--paragraph-font-size', config.typography.paragraphSize);
+        root.style.setProperty('--title-font-family', config.typography.titleFont);
+        root.style.setProperty('--title-font-size', config.typography.titleSize);
+      }
+    } catch (e) {
+      console.error('Error loading saved config:', e);
+    }
+  }
+  
+  console.log('Configuración CSS aplicada desde localStorage');
+}
+
+// Función para inicializar los controles de tipografía
+function initializeFontControls() {
+  // Controles de tipografía de párrafos
+  const paragraphFontSelect = document.getElementById('paragraphFont');
+  const paragraphFontSizeSlider = document.getElementById('paragraphFontSize');
+  const paragraphFontSizeDisplay = document.getElementById('paragraphFontSizeDisplay');
+
+  // Controles de tipografía de títulos
+  const titleFontSelect = document.getElementById('titleFont');
+  const titleFontSizeSlider = document.getElementById('titleFontSize');
+  const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
+
+  // Event listeners para párrafos
+  if (paragraphFontSelect) {
+    paragraphFontSelect.addEventListener('change', function() {
+      const fontFamily = this.value;
+      updateTypography({ paragraphFont: fontFamily });
+      // Aplicar inmediatamente
+      document.documentElement.style.setProperty('--paragraph-font-family', fontFamily);
+      console.log('Párrafo font changed to:', fontFamily);
+    });
+  }
+
+  if (paragraphFontSizeSlider) {
+    paragraphFontSizeSlider.addEventListener('input', function() {
+      const fontSize = this.value + 'px';
+      updateTypography({ paragraphSize: fontSize });
+      // Aplicar inmediatamente
+      document.documentElement.style.setProperty('--paragraph-font-size', fontSize);
+      if (paragraphFontSizeDisplay) {
+        paragraphFontSizeDisplay.textContent = fontSize;
+      }
+      console.log('Párrafo font size changed to:', fontSize);
+    });
+  }
+
+  // Event listeners para títulos
+  if (titleFontSelect) {
+    titleFontSelect.addEventListener('change', function() {
+      const fontFamily = this.value;
+      updateTypography({ titleFont: fontFamily });
+      // Aplicar inmediatamente
+      document.documentElement.style.setProperty('--title-font-family', fontFamily);
+      console.log('Título font changed to:', fontFamily);
+    });
+  }
+
+  if (titleFontSizeSlider) {
+    titleFontSizeSlider.addEventListener('input', function() {
+      const fontSize = this.value + 'px';
+      updateTypography({ titleSize: fontSize });
+      // Aplicar inmediatamente
+      document.documentElement.style.setProperty('--title-font-size', fontSize);
+      if (titleFontSizeDisplay) {
+        titleFontSizeDisplay.textContent = fontSize;
+      }
+      console.log('Título font size changed to:', fontSize);
+    });
+  }
+}
+
+// Función para cargar la configuración actual en los controles
+function loadCurrentConfig() {
+  // Esperar un poco para que los elementos estén disponibles
+  setTimeout(() => {
+    // Cargar configuración de colores
+    const headerColorInput = document.getElementById('headerColor');
+    const buttonColorInput = document.getElementById('buttonColor');
+    const bgColorInput = document.getElementById('bgColor');
+    const textColorInput = document.getElementById('textColor');
+    const titleColorInput = document.getElementById('titleColor');
+
+    if (headerColorInput) headerColorInput.value = config.colors.header;
+    if (buttonColorInput) buttonColorInput.value = config.colors.button;
+    if (bgColorInput) bgColorInput.value = config.colors.background;
+    if (textColorInput) textColorInput.value = config.colors.text;
+    if (titleColorInput) titleColorInput.value = config.colors.title;
+
+    // Cargar configuración de tipografía
+    const paragraphFontSelect = document.getElementById('paragraphFont');
+    const paragraphFontSizeSlider = document.getElementById('paragraphFontSize');
+    const paragraphFontSizeDisplay = document.getElementById('paragraphFontSizeDisplay');
+    const titleFontSelect = document.getElementById('titleFont');
+    const titleFontSizeSlider = document.getElementById('titleFontSize');
+    const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
+
+    if (paragraphFontSelect) paragraphFontSelect.value = config.typography.paragraphFont;
+    if (paragraphFontSizeSlider) {
+      paragraphFontSizeSlider.value = parseInt(config.typography.paragraphSize);
+      if (paragraphFontSizeDisplay) {
+        paragraphFontSizeDisplay.textContent = config.typography.paragraphSize;
+      }
+    }
+
+    if (titleFontSelect) titleFontSelect.value = config.typography.titleFont;
+    if (titleFontSizeSlider) {
+      titleFontSizeSlider.value = parseInt(config.typography.titleSize);
+      if (titleFontSizeDisplay) {
+        titleFontSizeDisplay.textContent = config.typography.titleSize;
+      }
+    }
+
+    console.log('Configuración cargada:', config);
+  }, 100);
+}
 </script>
 <template>
   <div class="config-bar">
@@ -99,6 +269,51 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Controles de Tipografía -->
+    <div class="font-control">
+      <div class="font-label">Tipografía de Párrafos/Subtítulos</div>
+      <select class="font-select" id="paragraphFont">
+        <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+        <option value="'Arial', sans-serif">Arial</option>
+        <option value="'Helvetica', sans-serif">Helvetica</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="'Georgia', serif">Georgia</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="'Verdana', sans-serif">Verdana</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+        <option value="'Impact', sans-serif">Impact</option>
+        <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+      </select>
+    </div>
+
+    <div class="font-control">
+      <div class="font-label">Tamaño de Párrafos/Subtítulos (px)</div>
+      <input type="range" class="font-size-slider" id="paragraphFontSize" min="10" max="24" value="16" />
+      <div class="font-size-display" id="paragraphFontSizeDisplay">16px</div>
+    </div>
+
+    <div class="font-control">
+      <div class="font-label">Tipografía de Títulos</div>
+      <select class="font-select" id="titleFont">
+        <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+        <option value="'Arial', sans-serif">Arial</option>
+        <option value="'Helvetica', sans-serif">Helvetica</option>
+        <option value="'Times New Roman', serif">Times New Roman</option>
+        <option value="'Georgia', serif">Georgia</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="'Verdana', sans-serif">Verdana</option>
+        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+        <option value="'Impact', sans-serif">Impact</option>
+        <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+      </select>
+    </div>
+
+    <div class="font-control">
+      <div class="font-label">Tamaño de Títulos (px)</div>
+      <input type="range" class="font-size-slider" id="titleFontSize" min="14" max="32" value="20" />
+      <div class="font-size-display" id="titleFontSizeDisplay">20px</div>
+    </div>
+
     <button class="reset-btn" id="resetAll">
       <i class="fas fa-undo"></i> Restablecer Todo
     </button>
@@ -144,42 +359,108 @@ onUnmounted(() => {
     </div>
   </div>
   <main class="main-content mt-0">
-    <div class="login-container">
-      <div class="login-card texto-personalizable">
-        <div class="login-header">
-          <h1 class="brand-title">Zay Shop</h1>
-          <p class="welcome-text">Bienvenido de nuevo</p>
-        </div>
-        <div class="login-body">
-          <form id="loginForm">
-            <div class="mb-3">
-              <label for="email" class="form-label">Correo electrónico</label>
-              <input type="email" class="form-control" id="email" required />
+    <div class="example-page-container">
+      <div class="example-page texto-personalizable">
+        <!-- Header de la página de ejemplo -->
+        <header class="example-header">
+          <div class="header-content">
+            <h1 class="site-title">Mi Sitio Web</h1>
+            <nav class="main-nav">
+              <a href="#" class="nav-link">Inicio</a>
+              <a href="#" class="nav-link">Productos</a>
+              <a href="#" class="nav-link">Servicios</a>
+              <a href="#" class="nav-link">Contacto</a>
+            </nav>
+          </div>
+        </header>
+
+        <!-- Contenido principal de la página de ejemplo -->
+        <main class="example-main-content">
+          <section class="hero-section">
+            <h2 class="hero-title">Bienvenido a Nuestra Plataforma</h2>
+            <p class="hero-description">
+              Esta es una página de ejemplo que muestra cómo se vería tu sitio web con las configuraciones personalizadas de colores, tipografía y tamaños de fuente que has seleccionado.
+            </p>
+            <button class="cta-button">Comenzar Ahora</button>
+          </section>
+
+          <section class="features-section">
+            <h3 class="section-title">Nuestras Características</h3>
+            <div class="features-grid">
+              <div class="feature-card">
+                <h4 class="feature-title">Diseño Personalizable</h4>
+                <p class="feature-description">
+                  Puedes cambiar colores, fuentes y tamaños según tus preferencias para crear una experiencia única.
+                </p>
+              </div>
+              <div class="feature-card">
+                <h4 class="feature-title">Fácil de Usar</h4>
+                <p class="feature-description">
+                  Interfaz intuitiva que permite a los administradores configurar la apariencia sin conocimientos técnicos.
+                </p>
+              </div>
+              <div class="feature-card">
+                <h4 class="feature-title">Responsive</h4>
+                <p class="feature-description">
+                  Se adapta perfectamente a todos los dispositivos manteniendo la coherencia visual.
+                </p>
+              </div>
             </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Contraseña</label>
-              <input type="password" class="form-control" id="password" required />
-            </div>
-            <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="remember" />
-              <label class="form-check-label" for="remember">Recordarme</label>
-            </div>
-            <button type="submit" class="btn btn-login">Iniciar Sesión</button>
-            <div class="text-center mt-3">
-              <a href="#" class="text-decoration-none" style="color: var(--header-color);"
-                >¿Olvidaste tu contraseña?</a
-              >
-            </div>
-            <div class="text-center mt-3">
+          </section>
+
+          <section class="content-section">
+            <h3 class="section-title">Contenido de Ejemplo</h3>
+            <div class="content-text">
               <p>
-                ¿No tienes una cuenta?
-                <a href="#" class="text-decoration-none" style="color: var(--header-color);"
-                  >Regístrate</a
-                >
+                Este párrafo muestra cómo se verá el texto normal con la tipografía y tamaño que has configurado. 
+                Puedes ver cómo los colores, fuentes y tamaños se aplican consistentemente en toda la página.
               </p>
+              <p>
+                Los títulos utilizan la configuración de tipografía para títulos, mientras que este texto utiliza 
+                la configuración para párrafos y subtítulos. Esto te permite tener un control total sobre la 
+                apariencia de tu sitio web.
+              </p>
+              <ul class="example-list">
+                <li>Elemento de lista con la tipografía configurada</li>
+                <li>Otro elemento que muestra la consistencia</li>
+                <li>Y un tercer elemento para completar la lista</li>
+              </ul>
             </div>
-          </form>
-        </div>
+          </section>
+
+          <section class="form-section">
+            <h3 class="section-title">Formulario de Ejemplo</h3>
+            <form class="example-form">
+              <div class="form-group">
+                <label for="exampleName" class="form-label">Nombre Completo</label>
+                <input type="text" class="form-control" id="exampleName" placeholder="Ingresa tu nombre" />
+              </div>
+              <div class="form-group">
+                <label for="exampleEmail" class="form-label">Correo Electrónico</label>
+                <input type="email" class="form-control" id="exampleEmail" placeholder="tu@email.com" />
+              </div>
+              <div class="form-group">
+                <label for="exampleMessage" class="form-label">Mensaje</label>
+                <textarea class="form-control" id="exampleMessage" rows="4" placeholder="Escribe tu mensaje aquí..."></textarea>
+              </div>
+              <button type="submit" class="submit-button">Enviar Mensaje</button>
+            </form>
+          </section>
+        </main>
+
+        <!-- Footer de la página de ejemplo -->
+        <footer class="example-footer">
+          <div class="footer-content">
+            <p class="footer-text">
+              © 2024 Mi Sitio Web. Todos los derechos reservados.
+            </p>
+            <div class="footer-links">
+              <a href="#" class="footer-link">Política de Privacidad</a>
+              <a href="#" class="footer-link">Términos de Servicio</a>
+              <a href="#" class="footer-link">Contacto</a>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   </main>
@@ -210,6 +491,7 @@ onUnmounted(() => {
 
   <!-- Notificaciones -->
   <div id="notification" class="notification"></div>
+  
 </template>
 
 <style>
@@ -225,7 +507,12 @@ onUnmounted(() => {
   --local-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --local-title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --local-primary-font-size: 16px; /* Default for primary font size */
-  --local-secondary-font-size: 16px; /* Default for secondary font size */
+  --local-secondary-font-size: 20px; /* Default for secondary font size */
+  /* Nuevas variables para tipografía personalizable */
+  --paragraph-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --paragraph-font-size: 16px;
+  --title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --title-font-size: 20px;
 }
 
 html,
@@ -396,6 +683,143 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
   transform: translateY(-2px);
 }
 
+/* Estilos para controles de tipografía */
+.font-control {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.font-label {
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.font-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  background: white;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.font-preview {
+  font-size: 14px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  margin-top: 8px;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.font-size-slider {
+  width: 100%;
+  margin-bottom: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #dee2e6;
+  outline: none;
+}
+
+.font-size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--header-color);
+  cursor: pointer;
+}
+
+.font-size-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--header-color);
+  cursor: pointer;
+  border: none;
+}
+
+.font-size-display {
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--header-color);
+  background: #f8f9fa;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  margin-top: 5px;
+}
+
+/* Mejorar la apariencia de los controles de tipografía */
+.font-control {
+  transition: all 0.3s ease;
+}
+
+.font-control:hover {
+  background: #f0f8ff;
+  border-color: var(--header-color);
+}
+
+.font-select:focus,
+.font-size-slider:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Asegurar que los controles funcionen en todos los navegadores */
+.font-size-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #dee2e6 0%, var(--header-color) 0%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.font-size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--header-color);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.3s;
+}
+
+.font-size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.font-size-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--header-color);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.3s;
+}
+
+.font-size-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
 .sidebar-title {
   text-align: center;
   margin-bottom: 30px;
@@ -418,35 +842,63 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
   opacity: 0.8;
 }
 
-/* TEXTO LOCAL (aplicado a elementos personalizables dentro de login-card) */
-.login-card.texto-personalizable, .login-card.texto-personalizable * {
-  font-family: var(--local-font-family) !important;
-  font-size: var(--local-primary-font-size) !important; /* Use primary font size for all elements */
+/* TEXTO LOCAL (aplicado a elementos personalizables dentro de example-page) */
+.example-page.texto-personalizable, .example-page.texto-personalizable * {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
 }
 
-.login-card.texto-personalizable p,
-.login-card.texto-personalizable label,
-.login-card.texto-personalizable a,
-.login-card.texto-personalizable .form-control,
-.login-card.texto-personalizable .btn-login {
-  font-family: var(--local-font-family) !important;
-  font-size: var(--local-primary-font-size) !important; /* Ensure these also use primary font size */
+.example-page.texto-personalizable p,
+.example-page.texto-personalizable label,
+.example-page.texto-personalizable a,
+.example-page.texto-personalizable .form-control,
+.example-page.texto-personalizable .nav-link,
+.example-page.texto-personalizable .footer-link,
+.example-page.texto-personalizable .hero-description,
+.example-page.texto-personalizable .feature-description,
+.example-page.texto-personalizable .content-text,
+.example-page.texto-personalizable .example-list li,
+.example-page.texto-personalizable .footer-text {
+  font-family: var(--paragraph-font-family) !important;
+  font-size: var(--paragraph-font-size) !important;
 }
 
-/* Aplicar fuente secundaria a títulos dentro de login-card */
-.login-card.texto-personalizable h1,
-.login-card.texto-personalizable h2,
-.login-card.texto-personalizable h3,
-.login-card.texto-personalizable h4,
-.login-card.texto-personalizable h5,
-.login-card.texto-personalizable h6 {
-  font-family: var(--local-title-font-family) !important;
-  font-size: var(--local-secondary-font-size) !important; /* Use secondary font size for titles */
+/* Aplicar fuente secundaria a títulos dentro de example-page */
+.example-page.texto-personalizable h1,
+.example-page.texto-personalizable h2,
+.example-page.texto-personalizable h3,
+.example-page.texto-personalizable h4,
+.example-page.texto-personalizable h5,
+.example-page.texto-personalizable h6,
+.example-page.texto-personalizable .site-title,
+.example-page.texto-personalizable .hero-title,
+.example-page.texto-personalizable .section-title,
+.example-page.texto-personalizable .feature-title {
+  font-family: var(--title-font-family) !important;
+  font-size: var(--title-font-size) !important;
 }
 
-/* Keep constant layout size for inputs and buttons within the login card */
-.login-card.texto-personalizable .form-control,
-.login-card.texto-personalizable .btn-login {
+/* Tamaños específicos para diferentes tipos de títulos */
+.example-page.texto-personalizable .site-title {
+  font-size: calc(var(--title-font-size) * 1.2) !important;
+}
+
+.example-page.texto-personalizable .hero-title {
+  font-size: calc(var(--title-font-size) * 1.5) !important;
+}
+
+.example-page.texto-personalizable .section-title {
+  font-size: calc(var(--title-font-size) * 1.1) !important;
+}
+
+.example-page.texto-personalizable .feature-title {
+  font-size: var(--title-font-size) !important;
+}
+
+/* Keep constant layout size for inputs and buttons within the example page */
+.example-page.texto-personalizable .form-control,
+.example-page.texto-personalizable .cta-button,
+.example-page.texto-personalizable .submit-button {
   font-size: 1rem !important;
 }
 
@@ -823,67 +1275,284 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
   width: calc(100% - 380px - 300px); /* Remaining width */
 }
 
-/* Login container styles */
-.login-container {
-  min-height: calc(100vh - 60px); /* Adjust for config bar height */
+/* Example page container styles */
+.example-page-container {
+  min-height: calc(100vh - 60px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
-  margin-left: 0; /* Handled by .main-content */
-  margin-right: 0; /* Handled by .main-content */
-  margin-top: 0; /* Handled by .main-content */
-  width: 100%; /* Occupy full width within main-content */
-  background-color: var(--bg-color); /* Ensure background changes with color */
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+  width: 100%;
+  background-color: var(--bg-color);
 }
 
-/* Login card original styles */
-.login-card {
+/* Example page styles */
+.example-page {
   background: white;
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.08);
   overflow: hidden;
   width: 100%;
-  max-width: 400px;
-  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.login-header {
-  background-color: white;
-  padding: 25px;
-  text-align: center;
-  transition: background-color 0.3s ease;
-  border-bottom: 5px solid var(--header-color);
-}
-
-.login-body {
-  padding: 30px;
-}
-
-.form-control {
-  border: 1px solid #dee2e6;
-  padding: 12px 15px;
-  margin-bottom: 15px;
-  border-radius: 5px;
-}
-
-.btn-login {
-  background-color: var(--button-color);
-  border: none;
+/* Header styles */
+.example-header {
+  background-color: var(--header-color);
   color: white;
-  padding: 12px 15px;
-  width: 100%;
+  padding: 20px 30px;
+  border-bottom: 3px solid var(--button-color);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.site-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: white !important;
+}
+
+.main-nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  color: white !important;
+  text-decoration: none;
   font-weight: 500;
+  padding: 8px 16px;
   border-radius: 5px;
   transition: background-color 0.3s;
 }
 
-.btn-login:hover {
-  filter: brightness(0.95);
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
 }
 
-#loginForm {
-  margin-top: 0; /* Resetting to default, adjust if needed */
+/* Main content styles */
+.example-main-content {
+  padding: 40px 30px;
+}
+
+/* Hero section */
+.hero-section {
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 40px 0;
+  background: linear-gradient(135deg, var(--bg-color) 0%, rgba(255,255,255,0.8) 100%);
+  border-radius: 10px;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: var(--title-color) !important;
+}
+
+.hero-description {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--text-color);
+}
+
+.cta-button {
+  background-color: var(--button-color);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cta-button:hover {
+  background-color: var(--header-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Features section */
+.features-section {
+  margin-bottom: 50px;
+}
+
+.section-title {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+  color: var(--title-color) !important;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.feature-card {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  border-left: 4px solid var(--header-color);
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-title {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: var(--title-color) !important;
+}
+
+.feature-description {
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+/* Content section */
+.content-section {
+  margin-bottom: 50px;
+}
+
+.content-text {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.content-text p {
+  margin-bottom: 20px;
+  line-height: 1.7;
+  color: var(--text-color);
+}
+
+.example-list {
+  margin: 20px 0;
+  padding-left: 30px;
+}
+
+.example-list li {
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+/* Form section */
+.form-section {
+  background: var(--bg-color);
+  padding: 40px;
+  border-radius: 10px;
+  margin-bottom: 50px;
+}
+
+.example-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  background: white;
+  color: var(--text-color);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--header-color);
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.submit-button {
+  background-color: var(--button-color);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+}
+
+.submit-button:hover {
+  background-color: var(--header-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Footer styles */
+.example-footer {
+  background-color: var(--title-color);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.footer-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.footer-text {
+  margin-bottom: 20px;
+  color: white !important;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: white !important;
+  text-decoration: none;
+  transition: opacity 0.3s;
+}
+
+.footer-link:hover {
+  opacity: 0.8;
+  text-decoration: none;
 }
 </style>
 
