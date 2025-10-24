@@ -265,6 +265,21 @@
       </div>
   </div>
 
+  <!-- Modal de confirmación para eliminar -->
+  <div class="modal-overlay" id="deleteModal">
+      <div class="modal-content">
+          <div class="modal-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <h3 class="modal-title">Confirmar Eliminación</h3>
+          <p class="modal-message" id="deleteModalMessage">¿Estás seguro de que quieres eliminar esta configuración?</p>
+          <div class="modal-actions">
+              <button class="modal-btn secondary" id="cancelDelete">Cancelar</button>
+              <button class="modal-btn danger" id="confirmDelete">Eliminar</button>
+          </div>
+      </div>
+  </div>
+
   <div class="context-menu" id="contextMenu">
       <div class="context-menu-item" id="contextMenuLoad">
           <i class="fas fa-arrow-alt-circle-right"></i> Cargar
@@ -353,10 +368,17 @@
           const contextMenuLoad = document.getElementById('contextMenuLoad');
           const contextMenuDelete = document.getElementById('contextMenuDelete');
           
+          // --- ELEMENTOS DEL MODAL DE ELIMINACIÓN ---
+          const deleteModal = document.getElementById('deleteModal');
+          const deleteModalMessage = document.getElementById('deleteModalMessage');
+          const cancelDelete = document.getElementById('cancelDelete');
+          const confirmDelete = document.getElementById('confirmDelete');
+          
           // --- VARIABLES GLOBALES ---
           let savedConfigs = [];
           let currentConfigId = null;
           let selectedConfigId = null;
+          let configToDelete = null;
 
           // --- FUNCIONES DE UTILIDAD ---
           function showNotification(message, type = 'success') {
@@ -514,12 +536,32 @@
           }
 
           function deleteConfig(configId) {
-              if (confirm('¿Estás seguro de que quieres eliminar esta configuración?')) {
-                  savedConfigs = savedConfigs.filter(c => c.id !== configId);
+              const config = savedConfigs.find(c => c.id === configId);
+              if (config) {
+                  configToDelete = configId;
+                  deleteModalMessage.textContent = `¿Estás seguro de que quieres eliminar la configuración "${config.name}"? Esta acción no se puede deshacer.`;
+                  openDeleteModal();
+              }
+          }
+
+          function confirmDeleteConfig() {
+              if (configToDelete) {
+                  savedConfigs = savedConfigs.filter(c => c.id !== configToDelete);
                   saveConfigsToStorage();
                   renderConfigsList();
                   showNotification('Configuración eliminada', 'info');
+                  closeDeleteModal();
+                  configToDelete = null;
               }
+          }
+
+          function openDeleteModal() {
+              deleteModal.classList.add('show');
+          }
+
+          function closeDeleteModal() {
+              deleteModal.classList.remove('show');
+              configToDelete = null;
           }
 
           function getFontFamilyName(fontFamilyValue) {
@@ -744,6 +786,10 @@
               hideContextMenu();
           });
           
+          // Eventos del modal de eliminación
+          cancelDelete.addEventListener('click', closeDeleteModal);
+          confirmDelete.addEventListener('click', confirmDeleteConfig);
+          
           // Cerrar menú contextual y limpiar variables al hacer clic en otra parte
           document.addEventListener('click', hideContextMenu);
           document.addEventListener('contextmenu', (e) => {
@@ -761,6 +807,11 @@
           configsModal.addEventListener('click', function(e) {
               if (e.target === this) {
                   configsModal.classList.remove('show');
+              }
+          });
+          deleteModal.addEventListener('click', function(e) {
+              if (e.target === this) {
+                  closeDeleteModal();
               }
           });
           
@@ -1342,8 +1393,6 @@
           color: #6c757d;
       }
       
-      /* .config-item-actions ha sido eliminado del CSS */
-      
       .empty-configs {
           text-align: center;
           padding: 20px;
@@ -1380,14 +1429,14 @@
           color: #6c757d;
       }
       
-      /* Modal para guardar configuración */
+      /* MODALES - ESTILOS FIJOS QUE NO SE AFECTAN POR LAS CONFIGURACIONES */
       .modal-overlay {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: #f8f9fa;
+          background-color: rgba(0, 0, 0, 0.5) !important; /* Fondo oscuro fijo */
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1403,7 +1452,7 @@
       }
       
       .modal-content {
-          background: white;
+          background: white !important; /* Fondo blanco fijo */
           border-radius: 10px;
           padding: 25px;
           width: 90%;
@@ -1411,6 +1460,14 @@
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
           transform: translateY(-20px);
           transition: transform 0.3s;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; /* Fuente fija */
+      }
+
+      /* Estilos específicos para el modal de configuraciones guardadas (más ancho) */
+      #configsModal .modal-content {
+          max-width: 650px !important; /* Ancho fijo para el modal de configuraciones */
+          background: white !important;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
       .modal-overlay.show .modal-content {
@@ -1420,21 +1477,42 @@
       .modal-title {
           margin-top: 0;
           margin-bottom: 15px;
-          font-size: 1.3rem;
-          font-size: 1.3rem !important; /* Tamaño relativo pero fijo */
-          color: #333333 !important;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          font-size: 1.3rem !important;
+          color: #333333 !important; /* Color fijo */
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; /* Fuente fija */
+          font-weight: 600;
+      }
+      
+      .modal-message {
+          margin-bottom: 20px;
+          color: #666666 !important; /* Color fijo */
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; /* Fuente fija */
+          font-size: 14px !important;
+          line-height: 1.5;
+      }
+      
+      .modal-icon {
+          text-align: center;
+          margin-bottom: 15px;
+          font-size: 3rem;
+          color: #ffc107 !important; /* Color amarillo de advertencia fijo */
       }
       
       .modal-input {
           width: 100%;
           padding: 10px;
-          border: 1px solid #dee2e6;
+          border: 1px solid #dee2e6 !important; /* Borde fijo */
           border-radius: 5px;
           margin-bottom: 15px;
-          color: #333333 !important;
-          font-size: 14px !important; /* Tamaño fijo para input de modal */
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          color: #333333 !important; /* Color fijo */
+          font-size: 14px !important;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; /* Fuente fija */
+          background: white !important; /* Fondo fijo */
+      }
+      
+      .modal-input:focus {
+          outline: none;
+          border-color: #007bff !important; /* Color de focus fijo */
       }
       
       .modal-actions {
@@ -1450,50 +1528,113 @@
           cursor: pointer;
           font-weight: 500;
           color: white !important;
-          font-size: 14px !important; /* Tamaño fijo para botones del modal */
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          font-size: 14px !important;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; /* Fuente fija */
+          transition: background-color 0.3s;
       }
       
       .modal-btn.primary {
-          background-color: #007bff;
-          color: white;
+          background-color: #007bff !important; /* Color fijo */
+      }
+      
+      .modal-btn.primary:hover {
+          background-color: #0069d9 !important; /* Color fijo */
       }
       
       .modal-btn.secondary {
-          background-color: #6c757d;
+          background-color: #6c757d !important; /* Color fijo */
+      }
+      
+      .modal-btn.secondary:hover {
+          background-color: #5a6268 !important; /* Color fijo */
+      }
+      
+      .modal-btn.danger {
+          background-color: #dc3545 !important; /* Color fijo */
+      }
+      
+      .modal-btn.danger:hover {
+          background-color: #c82333 !important; /* Color fijo */
+      }
+      
+       /* ESTILOS FIJOS PARA EL CONTENIDO DEL MODAL DE CONFIGURACIONES GUARDADAS */
+      #configsModal .configs-header,
+      #configsModal .configs-title,
+      #configsModal .configs-count,
+      #configsModal .search-box,
+      #configsModal .search-input,
+      #configsModal .configs-list,
+      #configsModal .config-item,
+      #configsModal .config-item-info,
+      #configsModal .config-item-name,
+      #configsModal .config-item-date,
+      #configsModal .font-preview,
+      #configsModal .empty-configs {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          color: #333333 !important;
+          background: white !important;
+      }
+
+      #configsModal .search-input {
+          border: 1px solid #dee2e6 !important;
+          background: white !important;
+          color: #333333 !important;
+      }
+
+      #configsModal .search-input:focus {
+          border-color: #007bff !important;
+          outline: none;
+      }
+
+      #configsModal .configs-list {
+          border: 1px solid #e9ecef !important;
+          background: white !important;
+      }
+
+      #configsModal .config-item:hover {
+          background-color: #f8f9fa !important;
+      }
+
+      #configsModal .config-item-date,
+      #configsModal .font-preview {
+          color: #6c757d !important;
+      }
+
+      #configsModal .empty-configs {
+          color: #6c757d !important;
+          font-style: italic;
+      }
+
+      .notification {
+          position: fixed;
+          top: 80px;
+          right: 20px;
+          padding: 15px 20px;
+          border-radius: 5px;
           color: white;
+          font-weight: 500;
+          z-index: 1200;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          transform: translateX(400px);
+          transition: transform 0.3s ease;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          font-size: 16px !important;
       }
 
-       .notification {
-           position: fixed;
-           top: 80px;
-           right: 20px;
-           padding: 15px 20px;
-           border-radius: 5px;
-           color: white;
-           font-weight: 500;
-           z-index: 1200;
-           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-           transform: translateX(400px);
-           transition: transform 0.3s ease;
-           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-           font-size: 16px !important; /* Tamaño fijo para notificaciones */
-       }
-
-       .notification.show {
-           transform: translateX(0);
-       }
-
-       .notification.success {
-           background-color: #28a745;
-       }
-
-       .notification.error {
-           background-color: #dc3545;
+      .notification.show {
+          transform: translateX(0);
       }
 
-       .notification.info {
-           background-color: #17a2b8;
+      .notification.success {
+          background-color: #28a745;
+      }
+
+      .notification.error {
+          background-color: #dc3545;
+      }
+
+      .notification.info {
+          background-color: #17a2b8;
       }
 
       .config-item-content {
@@ -1526,7 +1667,7 @@
           display: none;
           border: 1px solid #ddd;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-          font-size: 14px !important; /* Tamaño fijo para menú contextual */
+          font-size: 14px !important;
       }
       
       .context-menu.show {
@@ -1537,9 +1678,9 @@
           padding: 10px 15px;
           cursor: pointer;
           transition: background-color 0.2s;
-          white-space: nowrap; /* Evitar que el texto se rompa */
+          white-space: nowrap;
           color: #333333 !important;
-          font-size: 14px !important; /* Tamaño fijo para items del menú */
+          font-size: 14px !important;
       }
       
       .context-menu-item:hover {
@@ -1548,7 +1689,7 @@
       
       .context-menu-item.delete {
           color: #dc3545;
-          border-top: 1px solid #eee; /* Separador para Eliminar */
+          border-top: 1px solid #eee;
       }
       
       .context-menu-item i {
@@ -1557,48 +1698,48 @@
       }
 
       /* Estilos para fuentes personalizadas */
-        .custom-fonts-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e9ecef;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 10px;
-        }
+      .custom-fonts-list {
+          max-height: 200px;
+          overflow-y: auto;
+          border: 1px solid #e9ecef;
+          border-radius: 5px;
+          padding: 10px;
+          margin-top: 10px;
+      }
 
-        .custom-font-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #f1f1f1;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        }
+      .custom-font-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px;
+          border-bottom: 1px solid #f1f1f1;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
 
-        .custom-font-item:last-child {
-            border-bottom: none;
-        }
+      .custom-font-item:last-child {
+          border-bottom: none;
+      }
 
-        .custom-font-name {
-            font-weight: 600;
-            flex-grow: 1;
-        }
+      .custom-font-name {
+          font-weight: 600;
+          flex-grow: 1;
+      }
 
-        .custom-font-remove {
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 12px !important;
-        }
+      .custom-font-remove {
+          background: none;
+          border: none;
+          color: #dc3545;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 3px;
+          font-size: 12px !important;
+      }
 
-        .custom-font-remove:hover {
-            background-color: #f8d7da;
-        }
+      .custom-font-remove:hover {
+          background-color: #f8d7da;
+      }
 
-        .font-preview-active {
-            font-family: inherit !important;
-        }
+      .font-preview-active {
+          font-family: inherit !important;
+      }
 </style>
