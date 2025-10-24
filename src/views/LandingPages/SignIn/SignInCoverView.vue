@@ -1,1643 +1,1469 @@
-<script setup>
-import { onMounted, onUnmounted } from "vue";
-import { useStore } from "vuex";
-import { useGlobalConfig } from "@/composables/useGlobalConfig.js";
-import "@/assets/js/login-script";
-
-const body = document.getElementsByTagName("body")[0];
-const store = useStore();
-const { config, updateColors, updateTypography, resetConfig } = useGlobalConfig();
-
-onMounted(() => {
-  store.state.isAbsolute = true;
-  body.classList.remove("bg-gray-100");
-  
-  // Aplicar configuración global inmediatamente
-  applyGlobalConfig();
-  
-  // Aplicar configuración desde localStorage
-  applySavedConfig();
-  
-  // Inicializar controles de tipografía
-  initializeFontControls();
-  
-  // Inicializar controles de color
-  initializeColorControls();
-  
-  // Cargar configuración actual en los controles
-  loadCurrentConfig();
-});
-
-onUnmounted(() => {
-  body.classList.add("bg-gray-100");
-});
-
-// Función para aplicar configuración global
-function applyGlobalConfig() {
-  const root = document.documentElement;
-  
-  // Aplicar colores
-  root.style.setProperty('--header-color', config.colors.header);
-  root.style.setProperty('--button-color', config.colors.button);
-  root.style.setProperty('--bg-color', config.colors.background);
-  root.style.setProperty('--text-color', config.colors.text);
-  root.style.setProperty('--title-color', config.colors.title);
-  
-  // Aplicar tipografía - Asegurar que se apliquen correctamente
-  root.style.setProperty('--paragraph-font-family', config.typography.paragraphFont);
-  root.style.setProperty('--paragraph-font-size', config.typography.paragraphSize);
-  root.style.setProperty('--title-font-family', config.typography.titleFont);
-  root.style.setProperty('--title-font-size', config.typography.titleSize);
-  
-  console.log('Configuración global aplicada:', config);
-  
-  // Forzar actualización de la vista
-  setTimeout(() => {
-    document.querySelectorAll('.example-page *').forEach(el => {
-      el.style.fontFamily = 'inherit';
-      el.style.fontSize = 'inherit';
-    });
-  }, 10);
-}
-
-// Función para aplicar configuración guardada desde localStorage
-function applySavedConfig() {
-  const root = document.documentElement;
-  
-  // Aplicar variables CSS por defecto
-  root.style.setProperty('--paragraph-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
-  root.style.setProperty('--paragraph-font-size', '16px');
-  root.style.setProperty('--title-font-family', "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif");
-  root.style.setProperty('--title-font-size', '20px');
-  
-  // Aplicar configuración guardada si existe
-  const savedConfig = localStorage.getItem('globalAppConfig');
-  if (savedConfig) {
-    try {
-      const config = JSON.parse(savedConfig);
-      if (config.typography) {
-        root.style.setProperty('--paragraph-font-family', config.typography.paragraphFont);
-        root.style.setProperty('--paragraph-font-size', config.typography.paragraphSize);
-        root.style.setProperty('--title-font-family', config.typography.titleFont);
-        root.style.setProperty('--title-font-size', config.typography.titleSize);
-      }
-    } catch (e) {
-      console.error('Error loading saved config:', e);
-    }
-  }
-  
-  console.log('Configuración CSS aplicada desde localStorage');
-}
-
-// Función para inicializar los controles de tipografía
-function initializeFontControls() {
-  // Controles de tipografía de párrafos
-  const paragraphFontSelect = document.getElementById('paragraphFont');
-  const paragraphFontSizeSlider = document.getElementById('paragraphFontSize');
-  const paragraphFontSizeDisplay = document.getElementById('paragraphFontSizeDisplay');
-
-  // Controles de tipografía de títulos
-  const titleFontSelect = document.getElementById('titleFont');
-  const titleFontSizeSlider = document.getElementById('titleFontSize');
-  const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
-
-  // Event listeners para párrafos
-  if (paragraphFontSelect) {
-    paragraphFontSelect.addEventListener('change', function() {
-      const fontFamily = this.value;
-      updateTypography({ paragraphFont: fontFamily });
-      
-      // Aplicar inmediatamente a CSS variables y elementos
-      document.documentElement.style.setProperty('--paragraph-font-family', fontFamily);
-      
-      // Actualizar elementos de párrafos en tiempo real
-      updateParagraphElements(fontFamily, null);
-      
-      console.log('Párrafo font changed to:', fontFamily);
-    });
-  }
-
-  if (paragraphFontSizeSlider) {
-    paragraphFontSizeSlider.addEventListener('input', function() {
-      const fontSize = this.value + 'px';
-      updateTypography({ paragraphSize: fontSize });
-      
-      // Aplicar inmediatamente
-      document.documentElement.style.setProperty('--paragraph-font-size', fontSize);
-      
-      // Actualizar elementos de párrafos en tiempo real
-      updateParagraphElements(null, fontSize);
-      
-      if (paragraphFontSizeDisplay) {
-        paragraphFontSizeDisplay.textContent = fontSize;
-      }
-      console.log('Párrafo font size changed to:', fontSize);
-    });
-  }
-
-  // Event listeners para títulos
-  if (titleFontSelect) {
-    titleFontSelect.addEventListener('change', function() {
-      const fontFamily = this.value;
-      updateTypography({ titleFont: fontFamily });
-      
-      // Aplicar inmediatamente
-      document.documentElement.style.setProperty('--title-font-family', fontFamily);
-      
-      // Actualizar elementos de títulos en tiempo real
-      updateTitleElements(fontFamily, null);
-      
-      console.log('Título font changed to:', fontFamily);
-    });
-  }
-
-  if (titleFontSizeSlider) {
-    titleFontSizeSlider.addEventListener('input', function() {
-      const fontSize = this.value + 'px';
-      updateTypography({ titleSize: fontSize });
-      
-      // Aplicar inmediatamente
-      document.documentElement.style.setProperty('--title-font-size', fontSize);
-      
-      // Actualizar elementos de títulos en tiempo real
-      updateTitleElements(null, fontSize);
-      
-      if (titleFontSizeDisplay) {
-        titleFontSizeDisplay.textContent = fontSize;
-      }
-      console.log('Título font size changed to:', fontSize);
-    });
-  }
-}
-
-// Función para actualizar elementos de párrafos en tiempo real
-function updateParagraphElements(fontFamily, fontSize) {
-  const paragraphElements = document.querySelectorAll('.example-page p, .example-page label, .example-page .form-control, .example-page .nav-link, .example-page .footer-link, .example-page .hero-description, .example-page .feature-description, .example-page .content-text, .example-page .example-list li, .example-page .footer-text');
-  
-  paragraphElements.forEach(el => {
-    if (fontFamily) {
-      el.style.fontFamily = fontFamily;
-    }
-    if (fontSize) {
-      el.style.fontSize = fontSize;
-    }
-  });
-}
-
-// Función para actualizar elementos de títulos en tiempo real
-function updateTitleElements(fontFamily, fontSize) {
-  const titleElements = document.querySelectorAll('.example-page h1, .example-page h2, .example-page h3, .example-page h4, .example-page h5, .example-page h6, .example-page .site-title, .example-page .hero-title, .example-page .section-title, .example-page .feature-title');
-  
-  titleElements.forEach(el => {
-    if (fontFamily) {
-      el.style.fontFamily = fontFamily;
-    }
-    if (fontSize) {
-      el.style.fontSize = fontSize;
-    }
-  });
-}
-
-// Función para inicializar controles de color
-function initializeColorControls() {
-  const colorInputs = ['headerColor', 'buttonColor', 'bgColor', 'textColor', 'titleColor'];
-  
-  colorInputs.forEach(colorId => {
-    const input = document.getElementById(colorId);
-    if (input) {
-      input.addEventListener('input', function() {
-        // Actualizar inmediatamente la vista
-        applyGlobalConfig();
-      });
-    }
-  });
-}
-
-// Función para cargar la configuración actual en los controles
-function loadCurrentConfig() {
-  // Esperar a que los elementos estén disponibles
-  setTimeout(() => {
-    // Cargar configuración de colores
-    const headerColorInput = document.getElementById('headerColor');
-    const buttonColorInput = document.getElementById('buttonColor');
-    const bgColorInput = document.getElementById('bgColor');
-    const textColorInput = document.getElementById('textColor');
-    const titleColorInput = document.getElementById('titleColor');
-
-    if (headerColorInput) headerColorInput.value = config.colors.header;
-    if (buttonColorInput) buttonColorInput.value = config.colors.button;
-    if (bgColorInput) bgColorInput.value = config.colors.background;
-    if (textColorInput) textColorInput.value = config.colors.text;
-    if (titleColorInput) titleColorInput.value = config.colors.title;
-
-    // Cargar configuración de tipografía
-    const paragraphFontSelect = document.getElementById('paragraphFont');
-    const paragraphFontSizeSlider = document.getElementById('paragraphFontSize');
-    const paragraphFontSizeDisplay = document.getElementById('paragraphFontSizeDisplay');
-    const titleFontSelect = document.getElementById('titleFont');
-    const titleFontSizeSlider = document.getElementById('titleFontSize');
-    const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
-
-    if (paragraphFontSelect) {
-      paragraphFontSelect.value = config.typography.paragraphFont;
-      // Disparar evento change para aplicar inmediatamente
-      paragraphFontSelect.dispatchEvent(new Event('change'));
-    }
-    
-    if (paragraphFontSizeSlider) {
-      paragraphFontSizeSlider.value = parseInt(config.typography.paragraphSize);
-      if (paragraphFontSizeDisplay) {
-        paragraphFontSizeDisplay.textContent = config.typography.paragraphSize;
-      }
-      // Disparar evento input para aplicar inmediatamente
-      paragraphFontSizeSlider.dispatchEvent(new Event('input'));
-    }
-
-    if (titleFontSelect) {
-      titleFontSelect.value = config.typography.titleFont;
-      // Disparar evento change para aplicar inmediatamente
-      titleFontSelect.dispatchEvent(new Event('change'));
-    }
-    
-    if (titleFontSizeSlider) {
-      titleFontSizeSlider.value = parseInt(config.typography.titleSize);
-      if (titleFontSizeDisplay) {
-        titleFontSizeDisplay.textContent = config.typography.titleSize;
-      }
-      // Disparar evento input para aplicar inmediatamente
-      titleFontSizeSlider.dispatchEvent(new Event('input'));
-    }
-
-    console.log('Configuración cargada:', config);
-  }, 100);
-}
-</script>
 <template>
   <div class="config-bar">
-    <h3 class="config-title">Panel de Configuración</h3>
-    <div class="config-actions">
-      <button class="config-btn" id="saveConfigBtn">
-        <i class="fas fa-save"></i> Guardar
-      </button>
-      <button class="config-btn" id="exportConfigBtn">
-        <i class="fas fa-download"></i> Exportar
-      </button>
-      <a href="index.html" class="config-btn back-to-home">
-        <i class="fa fa-arrow-left"></i> Volver al Inicio
-      </a>
-    </div>
+      <h3 class="config-title">Panel de Configuración</h3>
+      <div class="config-actions">
+          <button class="config-btn" id="openConfigsModalBtn" title="Ver todos los presets guardados">
+              <i class="fas fa-list-alt"></i> Presets
+          </button>
+          <button class="config-btn" id="saveConfigBtn">
+              <i class="fas fa-save"></i> Guardar
+          </button>
+          <button class="config-btn" id="exportConfigBtn">
+              <i class="fas fa-download"></i> Exportar
+          </button>
+          <a href="index.html" class="config-btn back-to-home">
+              <i class="fa fa-arrow-left"></i> Volver al Inicio
+          </a>
+      </div>
   </div>
 
-  <!-- Left sidebar: solo control de colores y fuentes -->
+  <div class="preview-container">
+      <div class="preview-card texto-personalizable">
+          <div class="preview-header">
+              <h1 class="preview-main-title">Título</h1>
+              <p class="preview-subtitle">Subtítulo descriptivo de la página</p>
+          </div>
+          <div class="preview-body">
+              <!-- Sección de contenido principal -->
+              <div class="preview-section">
+                  <h2 class="preview-section-title">Sección Principal</h2>
+                  <p class="preview-paragraph">Este es un párrafo de ejemplo que muestra cómo se verá el texto en tu página. Puedes ajustar el tamaño, color y fuente según tus preferencias.</p>
+                  <p class="preview-paragraph">Otro párrafo para demostrar la consistencia en el estilo de texto. Observa cómo se aplican las configuraciones de color y tipografía.</p>
+              </div>
+
+              <!-- Sección de características -->
+              <div class="preview-section">
+                  <h3 class="preview-section-subtitle">Características Destacadas</h3>
+                  <ul class="preview-list">
+                      <li class="preview-list-item">Elemento de lista número uno</li>
+                      <li class="preview-list-item">Segundo elemento de la lista</li>
+                      <li class="preview-list-item">Tercer elemento demostrativo</li>
+                  </ul>
+              </div>
+
+              <!-- Sección de botones -->
+              <div class="preview-section">
+                  <h4 class="preview-section-subtitle">Ejemplos de Botones</h4>
+                  <div class="preview-buttons">
+                      <button class="preview-btn primary">Botón Principal</button>
+                      <button class="preview-btn secondary">Botón Secundario</button>
+                      <a href="#" class="preview-link">Enlace de ejemplo</a>
+                  </div>
+              </div>
+
+              <!-- Sección de formulario de ejemplo -->
+              <div class="preview-section">
+                  <h4 class="preview-section-subtitle">Formulario de Ejemplo</h4>
+                  <div class="preview-form">
+                      <div class="preview-form-group">
+                          <label class="preview-label">Nombre completo</label>
+                          <input type="text" class="preview-input" placeholder="Ingresa tu nombre">
+                      </div>
+                      <div class="preview-form-group">
+                          <label class="preview-label">Correo electrónico</label>
+                          <input type="email" class="preview-input" placeholder="ejemplo@correo.com">
+                      </div>
+                      <div class="preview-form-group">
+                          <label class="preview-label">
+                              <input type="checkbox" class="preview-checkbox">
+                              Acepto los términos y condiciones
+                          </label>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- Sección de tarjetas -->
+              <div class="preview-section">
+                  <h3 class="preview-section-subtitle">Tarjetas de Contenido</h3>
+                  <div class="preview-cards">
+                      <div class="preview-card-item">
+                          <h5 class="preview-card-title">Tarjeta 1</h5>
+                          <p class="preview-card-text">Contenido de la primera tarjeta demostrativa.</p>
+                      </div>
+                      <div class="preview-card-item">
+                          <h5 class="preview-card-title">Tarjeta 2</h5>
+                          <p class="preview-card-text">Segunda tarjeta con contenido de ejemplo.</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Sidebar izquierdo (Personalización) - CON dos sliders de tamaño -->
   <div class="color-sidebar">
-    <h4 class="sidebar-title">Personalizar Apariencia</h4>
-
-    <div class="color-control">
-      <div class="color-label">Color 1</div>
-      <input type="color" class="color-input" id="headerColor" value="#28a745" />
-      <div class="color-preview">
-        <div
-          id="headerPreview"
-          class="color-square-preview"
-          style="background-color: #28a745;"
-        ></div>
-        <div class="color-hex" id="headerHex">#28a745</div>
-      </div>
-    </div>
-
-    <div class="color-control">
-      <div class="color-label">Color 2</div>
-      <input type="color" class="color-input" id="buttonColor" value="#198754" />
-      <div class="color-preview">
-        <div
-          id="buttonPreview"
-          class="color-square-preview"
-          style="background-color: #198754;"
-        ></div>
-        <div class="color-hex" id="buttonHex">#198754</div>
-      </div>
-    </div>
-
-    <div class="color-control">
-      <div class="color-label">Color 3</div>
-      <input type="color" class="color-input" id="bgColor" value="#f8f9fa" />
-      <div class="color-preview">
-        <div
-          id="bgPreview"
-          class="color-square-preview"
-          style="background-color: #f8f9fa;"
-        ></div>
-        <div class="color-hex" id="bgHex">#f8f9fa</div>
-      </div>
-    </div>
-
-    <div class="color-control">
-      <div class="color-label">Color 4</div>
-      <input type="color" class="color-input" id="textColor" value="#333333" />
-      <div class="color-preview">
-        <div
-          id="textPreview"
-          class="color-square-preview"
-          style="background-color: #333333;"
-        ></div>
-        <div class="color-hex" id="textHex">#333333</div>
-      </div>
-    </div>
-
-    <div class="color-control">
-      <div class="color-label">Color 5</div>
-      <input type="color" class="color-input" id="titleColor" value="#212529" />
-      <div class="color-preview">
-        <div
-          id="titlePreview"
-          class="color-square-preview"
-          style="background-color: #212529;"
-        ></div>
-        <div class="color-hex" id="titleHex">#212529</div>
-      </div>
-    </div>
-
-    <!-- Controles de Tipografía -->
-    <div class="font-control">
-      <div class="font-label">Tipografía de Párrafos/Subtítulos</div>
-      <select class="font-select" id="paragraphFont">
-        <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
-        <option value="'Arial', sans-serif">Arial</option>
-        <option value="'Helvetica', sans-serif">Helvetica</option>
-        <option value="'Times New Roman', serif">Times New Roman</option>
-        <option value="'Georgia', serif">Georgia</option>
-        <option value="'Courier New', monospace">Courier New</option>
-        <option value="'Verdana', sans-serif">Verdana</option>
-        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-        <option value="'Impact', sans-serif">Impact</option>
-        <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
-      </select>
-    </div>
-
-    <div class="font-control">
-      <div class="font-label">Tamaño de Párrafos/Subtítulos (px)</div>
-      <input type="range" class="font-size-slider" id="paragraphFontSize" min="10" max="24" value="16" />
-      <div class="font-size-display" id="paragraphFontSizeDisplay">16px</div>
-    </div>
-
-    <div class="font-control">
-      <div class="font-label">Tipografía de Títulos</div>
-      <select class="font-select" id="titleFont">
-        <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
-        <option value="'Arial', sans-serif">Arial</option>
-        <option value="'Helvetica', sans-serif">Helvetica</option>
-        <option value="'Times New Roman', serif">Times New Roman</option>
-        <option value="'Georgia', serif">Georgia</option>
-        <option value="'Courier New', monospace">Courier New</option>
-        <option value="'Verdana', sans-serif">Verdana</option>
-        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
-        <option value="'Impact', sans-serif">Impact</option>
-        <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
-      </select>
-    </div>
-
-    <div class="font-control">
-      <div class="font-label">Tamaño de Títulos (px)</div>
-      <input type="range" class="font-size-slider" id="titleFontSize" min="14" max="32" value="20" />
-      <div class="font-size-display" id="titleFontSizeDisplay">20px</div>
-    </div>
-
-    <button class="reset-btn" id="resetAll">
-      <i class="fas fa-undo"></i> Restablecer Todo
-    </button>
-  </div>
-
-  <!-- Right sidebar for saved configurations -->
-  <div class="configs-sidebar">
-    <div class="config-management">
-      <h5 class="config-management-title">Gestión de Configuraciones</h5>
-      <div class="config-management-buttons">
-        <button class="config-management-btn success" id="saveAsConfigBtn">
-          <i class="fas fa-save"></i> Guardar Como...
-        </button>
-        <button class="config-management-btn" id="exportConfigBtnSidebar">
-          <i class="fas fa-download"></i> Exportar Configuración
-        </button>
-      </div>
-
-      <div class="configs-header">
-        <h6 class="configs-title">Mis Configuraciones</h6>
-        <span class="configs-count" id="configsCount">0 guardadas</span>
-      </div>
-
-      <div class="search-box">
-        <input
-          type="text"
-          class="search-input"
-          id="searchConfigs"
-          placeholder="Buscar configuraciones..."
-        />
-      </div>
-
-      <div class="configs-list" id="configsList">
-        <div class="empty-configs">No hay configuraciones guardadas</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="container position-sticky z-index-sticky top-0">
-    <div class="row">
-      <div class="col-12">
-      </div>
-    </div>
-  </div>
-  <main class="main-content mt-0">
-    <div class="example-page-container">
-      <div class="example-page texto-personalizable">
-        <!-- Header de la página de ejemplo -->
-        <header class="example-header">
-          <div class="header-content">
-            <h1 class="site-title">Mi Sitio Web</h1>
-            <nav class="main-nav">
-              <a href="#" class="nav-link">Inicio</a>
-              <a href="#" class="nav-link">Productos</a>
-              <a href="#" class="nav-link">Servicios</a>
-              <a href="#" class="nav-link">Contacto</a>
-            </nav>
+      <h4 class="sidebar-title">Personalizar Apariencia</h4>
+      
+      <div class="color-control">
+          <div class="color-label">Color 1</div>
+          <input type="color" class="color-input" id="headerColor" value="#28a745">
+          <div class="color-preview">
+              <div id="headerPreview" style="width: 30px; height: 30px; background-color: #28a745; border-radius: 6px;"></div>
+              <div class="color-hex" id="headerHex">#28a745</div>
           </div>
-        </header>
-
-        <!-- Contenido principal de la página de ejemplo -->
-        <main class="example-main-content">
-          <section class="hero-section">
-            <h2 class="hero-title">Bienvenido a Nuestra Plataforma</h2>
-            <p class="hero-description">
-              Esta es una página de ejemplo que muestra cómo se vería tu sitio web con las configuraciones personalizadas de colores, tipografía y tamaños de fuente que has seleccionado.
-            </p>
-            <button class="cta-button">Comenzar Ahora</button>
-          </section>
-
-          <section class="features-section">
-            <h3 class="section-title">Nuestras Características</h3>
-            <div class="features-grid">
-              <div class="feature-card">
-                <h4 class="feature-title">Diseño Personalizable</h4>
-                <p class="feature-description">
-                  Puedes cambiar colores, fuentes y tamaños según tus preferencias para crear una experiencia única.
-                </p>
-              </div>
-              <div class="feature-card">
-                <h4 class="feature-title">Fácil de Usar</h4>
-                <p class="feature-description">
-                  Interfaz intuitiva que permite a los administradores configurar la apariencia sin conocimientos técnicos.
-                </p>
-              </div>
-              <div class="feature-card">
-                <h4 class="feature-title">Responsive</h4>
-                <p class="feature-description">
-                  Se adapta perfectamente a todos los dispositivos manteniendo la coherencia visual.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section class="content-section">
-            <h3 class="section-title">Contenido de Ejemplo</h3>
-            <div class="content-text">
-              <p>
-                Este párrafo muestra cómo se verá el texto normal con la tipografía y tamaño que has configurado. 
-                Puedes ver cómo los colores, fuentes y tamaños se aplican consistentemente en toda la página.
-              </p>
-              <p>
-                Los títulos utilizan la configuración de tipografía para títulos, mientras que este texto utiliza 
-                la configuración para párrafos y subtítulos. Esto te permite tener un control total sobre la 
-                apariencia de tu sitio web.
-              </p>
-              <ul class="example-list">
-                <li>Elemento de lista con la tipografía configurada</li>
-                <li>Otro elemento que muestra la consistencia</li>
-                <li>Y un tercer elemento para completar la lista</li>
-              </ul>
-            </div>
-          </section>
-
-          <section class="form-section">
-            <h3 class="section-title">Formulario de Ejemplo</h3>
-            <form class="example-form">
-              <div class="form-group">
-                <label for="exampleName" class="form-label">Nombre Completo</label>
-                <input type="text" class="form-control" id="exampleName" placeholder="Ingresa tu nombre" />
-              </div>
-              <div class="form-group">
-                <label for="exampleEmail" class="form-label">Correo Electrónico</label>
-                <input type="email" class="form-control" id="exampleEmail" placeholder="tu@email.com" />
-              </div>
-              <div class="form-group">
-                <label for="exampleMessage" class="form-label">Mensaje</label>
-                <textarea class="form-control" id="exampleMessage" rows="4" placeholder="Escribe tu mensaje aquí..."></textarea>
-              </div>
-              <button type="submit" class="submit-button">Enviar Mensaje</button>
-            </form>
-          </section>
-        </main>
-
-        <!-- Footer de la página de ejemplo -->
-        <footer class="example-footer">
-          <div class="footer-content">
-            <p class="footer-text">
-              © 2024 Mi Sitio Web. Todos los derechos reservados.
-            </p>
-            <div class="footer-links">
-              <a href="#" class="footer-link">Política de Privacidad</a>
-              <a href="#" class="footer-link">Términos de Servicio</a>
-              <a href="#" class="footer-link">Contacto</a>
-            </div>
-          </div>
-        </footer>
       </div>
-    </div>
-  </main>
-  <!-- Modal para guardar configuración -->
+      
+      <div class="color-control">
+          <div class="color-label">Color 2</div>
+          <input type="color" class="color-input" id="buttonColor" value="#198754">
+          <div class="color-preview">
+              <div id="buttonPreview" style="width: 30px; height: 30px; background-color: #198754; border-radius: 6px;"></div>
+              <div class="color-hex" id="buttonHex">#198754</div>
+          </div>
+      </div>
+      
+      <div class="color-control">
+          <div class="color-label">Color de Fondo</div>
+          <input type="color" class="color-input" id="bgColor" value="#f8f9fa">
+          <div class="color-preview">
+              <div id="bgPreview" style="width: 30px; height: 30px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #ddd;"></div>
+              <div class="color-hex" id="bgHex">#f8f9fa</div>
+          </div>
+      </div>
+      
+      <div class="color-control">
+          <div class="color-label">Color de Texto</div>
+          <input type="color" class="color-input" id="textColor" value="#333333">
+          <div class="color-preview">
+              <div id="textPreview" style="width: 30px; height: 30px; background-color: #333333; border-radius: 6px;"></div>
+              <div class="color-hex" id="textHex">#333333</div>
+          </div>
+      </div>
+      
+      <div class="color-control">
+          <div class="color-label">Color de Títulos</div>
+          <input type="color" class="color-input" id="titleColor" value="#212529">
+          <div class="color-preview">
+              <div id="titlePreview" style="width: 30px; height: 30px; background-color: #212529; border-radius: 6px;"></div>
+              <div class="color-hex" id="titleHex">#212529</div>
+          </div>
+      </div>
+      
+      <h4 class="sidebar-title mt-4">Personalizar Texto</h4>
+      <div class="additional-options" style="border-top: none; margin-top: 0; padding-top: 0;">
+          <div class="option-group">
+              <label class="option-label">Tamaño de Párrafos y Subtítulos (1-100px)</label>
+              <input type="range" class="form-range" id="paragraphFontSizeRange" min="1" max="100" value="16">
+              <span id="paragraphFontSizeValue">16px</span>
+          </div>
+          
+          <div class="option-group">
+              <label class="option-label">Tamaño de Títulos (1-100px)</label>
+              <input type="range" class="form-range" id="titleFontSizeRange" min="1" max="100" value="24">
+              <span id="titleFontSizeValue">24px</span>
+          </div>
+          
+          <div class="option-group">
+              <label class="option-label">Fuente Principal (Párrafos)</label>
+              <select class="option-select" id="primaryFontSelect">
+                  <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" selected>Segoe UI (Defecto)</option>
+                  <option value="Roboto, sans-serif">Roboto</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'Courier New', monospace">Courier New</option>
+              </select>
+          </div>
+          
+          <div class="option-group">
+              <label class="option-label">Fuente Secundaria (Títulos)</label>
+              <select class="option-select" id="secondaryFontSelect">
+                  <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" selected>Segoe UI (Defecto)</option>
+                  <option value="Roboto, sans-serif">Roboto</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'Courier New', monospace">Courier New</option>
+              </select>
+          </div>
+      </div>
+      
+      <button class="reset-btn" id="resetAll">
+          <i class="fas fa-undo"></i> Restablecer Todo
+      </button>
+  </div>
+
+  <!-- Nuevo Sidebar Derecho (Configuraciones Guardadas) -->
+  <div class="config-sidebar">
+      <h4 class="sidebar-title">Configuraciones Guardadas</h4>
+      
+      <div class="config-management">
+          <h5 class="config-management-title">Gestión de Configuraciones</h5>
+          <div class="config-management-buttons">
+              <button class="config-management-btn success" id="saveAsConfigBtn">
+                  <i class="fas fa-save"></i> Guardar Como...
+              </button>
+          </div>
+          
+          <div class="configs-header">
+              <h6 class="configs-title">Mis Configuraciones</h6>
+              <span class="configs-count" id="configsCount">0 guardadas</span>
+          </div>
+          
+          <div class="search-box">
+              <input type="text" class="search-input" id="searchConfigs" placeholder="Buscar configuraciones...">
+          </div>
+          
+          <div class="configs-list" id="configsList">
+              <div class="empty-configs">No hay configuraciones guardadas</div>
+          </div>
+      </div>
+  </div>
+
   <div class="modal-overlay" id="saveModal">
-    <div class="modal-content">
-      <h3 class="modal-title">Guardar Configuración</h3>
-      <input
-        type="text"
-        class="modal-input"
-        id="configName"
-        placeholder="Nombre de la configuración"
-        maxlength="30"
-      />
-      <div class="modal-actions">
-        <button class="modal-btn secondary" id="cancelSave">Cancelar</button>
-        <button class="modal-btn primary" id="confirmSave">Guardar</button>
+      <div class="modal-content">
+          <h3 class="modal-title">Guardar Configuración</h3>
+          <input type="text" class="modal-input" id="configName" placeholder="Nombre de la configuración" maxlength="30">
+          <div class="modal-actions">
+              <button class="modal-btn secondary" id="cancelSave">Cancelar</button>
+              <button class="modal-btn primary" id="confirmSave">Guardar</button>
+          </div>
       </div>
-    </div>
   </div>
 
-  <!-- Menú contextual para eliminar configuraciones -->
+  <div class="modal-overlay" id="configsModal">
+      <div class="modal-content" style="max-width: 650px;">
+          <h3 class="modal-title">Presets de Apariencia Guardados</h3>
+          
+          <div class="configs-header">
+              <h6 class="configs-title">Mis Configuraciones Guardadas</h6>
+              <span class="configs-count" id="modalConfigsCount">0 guardadas</span>
+          </div>
+          
+          <div class="search-box">
+              <input type="text" class="search-input" id="searchModalConfigs" placeholder="Buscar configuraciones...">
+          </div>
+          
+          <div class="configs-list" id="modalConfigsList" style="max-height: 400px; padding: 0;">
+              <div class="empty-configs">No hay configuraciones guardadas</div>
+          </div>
+          
+          <div class="modal-actions" style="margin-top: 20px;">
+              <button class="modal-btn secondary" id="closeConfigsModal">Cerrar</button>
+          </div>
+      </div>
+  </div>
+
   <div class="context-menu" id="contextMenu">
-    <div class="context-menu-item delete" id="contextMenuDelete">
-      <i class="fas fa-trash"></i> Eliminar
-    </div>
+      <div class="context-menu-item" id="contextMenuLoad">
+          <i class="fas fa-arrow-alt-circle-right"></i> Cargar
+      </div>
+      <div class="context-menu-item delete" id="contextMenuDelete">
+          <i class="fas fa-trash"></i> Eliminar
+      </div>
   </div>
 
-  <!-- Notificaciones -->
   <div id="notification" class="notification"></div>
-  
 </template>
 
+<script>
+      document.addEventListener('DOMContentLoaded', function() {
+          // --- VARIABLES Y ELEMENTOS DE COLOR ---
+          const defaultColors = {
+              header: '#28a745',
+              button: '#198754',
+              bg: '#f8f9fa',
+              text: '#333333',
+              title: '#212529'
+          };
+
+          const colorInputs = {
+              header: document.getElementById('headerColor'),
+              button: document.getElementById('buttonColor'),
+              bg: document.getElementById('bgColor'),
+              text: document.getElementById('textColor'),
+              title: document.getElementById('titleColor')
+          };
+
+          const colorPreviews = {
+              header: document.getElementById('headerPreview'),
+              button: document.getElementById('buttonPreview'),
+              bg: document.getElementById('bgPreview'),
+              text: document.getElementById('textPreview'),
+              title: document.getElementById('titlePreview')
+          };
+          
+          const colorHexes = {
+              header: document.getElementById('headerHex'),
+              button: document.getElementById('buttonHex'),
+              bg: document.getElementById('bgHex'),
+              text: document.getElementById('textHex'),
+              title: document.getElementById('titleHex')
+          };
+
+          const resetBtn = document.getElementById('resetAll');
+          const rootElement = document.documentElement;
+
+          // --- VARIABLES Y ELEMENTOS DE TEXTO ---
+          const paragraphFontSizeRange = document.getElementById('paragraphFontSizeRange');
+          const titleFontSizeRange = document.getElementById('titleFontSizeRange');
+          const primaryFontSelect = document.getElementById('primaryFontSelect');
+          const secondaryFontSelect = document.getElementById('secondaryFontSelect');
+          const paragraphFontSizeValue = document.getElementById('paragraphFontSizeValue');
+          const titleFontSizeValue = document.getElementById('titleFontSizeValue');
+
+          // --- ELEMENTOS DE GESTIÓN DE CONFIGURACIONES ---
+          const saveConfigBtn = document.getElementById('saveConfigBtn');
+          const saveAsConfigBtn = document.getElementById('saveAsConfigBtn');
+          const exportConfigBtn = document.getElementById('exportConfigBtn');
+          const notification = document.getElementById('notification');
+          
+          // --- ELEMENTOS DE LA LISTA DE CONFIGURACIONES EN SIDEBAR DERECHO ---
+          const configsList = document.getElementById('configsList');
+          const configsCount = document.getElementById('configsCount');
+          const searchConfigs = document.getElementById('searchConfigs');
+          
+          // --- ELEMENTOS DEL MODAL DE GUARDAR ---
+          const saveModal = document.getElementById('saveModal');
+          const configName = document.getElementById('configName');
+          const cancelSave = document.getElementById('cancelSave');
+          const confirmSave = document.getElementById('confirmSave');
+          
+          // --- ELEMENTOS DEL NUEVO MODAL DE PRESETS (SOLICITADO) ---
+          const openConfigsModalBtn = document.getElementById('openConfigsModalBtn');
+          const configsModal = document.getElementById('configsModal');
+          const closeConfigsModal = document.getElementById('closeConfigsModal');
+          const modalConfigsList = document.getElementById('modalConfigsList');
+          const modalConfigsCount = document.getElementById('modalConfigsCount');
+          const searchModalConfigs = document.getElementById('searchModalConfigs');
+          
+          // --- ELEMENTOS DEL MENÚ CONTEXTUAL (REVERTIDO) ---
+          const contextMenu = document.getElementById('contextMenu');
+          const contextMenuLoad = document.getElementById('contextMenuLoad');
+          const contextMenuDelete = document.getElementById('contextMenuDelete');
+          
+          // --- VARIABLES GLOBALES ---
+          let savedConfigs = [];
+          let currentConfigId = null;
+          let selectedConfigId = null;
+
+          // --- FUNCIONES DE UTILIDAD ---
+          function showNotification(message, type = 'success') {
+              notification.textContent = message;
+              notification.className = `notification ${type} show`;
+              
+              setTimeout(() => {
+                  notification.classList.remove('show');
+              }, 3000);
+          }
+
+          function getCurrentConfig() {
+              return {
+                  id: currentConfigId || Date.now().toString(),
+                  name: "Configuración Actual",
+                  colors: {
+                      header: colorInputs.header.value,
+                      button: colorInputs.button.value,
+                      bg: colorInputs.bg.value,
+                      text: colorInputs.text.value,
+                      title: colorInputs.title.value
+                  },
+                  text: {
+                      paragraphFontSize: paragraphFontSizeRange.value,
+                      titleFontSize: titleFontSizeRange.value,
+                      primaryFontFamily: primaryFontSelect.value,
+                      secondaryFontFamily: secondaryFontSelect.value
+                  },
+                  timestamp: new Date().toISOString()
+              };
+          }
+
+          function applyConfig(config) {
+              // Aplicar colores
+              for (const key in config.colors) {
+                  if (colorInputs[key]) {
+                      colorInputs[key].value = config.colors[key];
+                  }
+              }
+              
+              // Aplicar configuración de texto
+              if (config.text) {
+                  paragraphFontSizeRange.value = config.text.paragraphFontSize || 16;
+                  titleFontSizeRange.value = config.text.titleFontSize || 24;
+                  primaryFontSelect.value = config.text.primaryFontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                  secondaryFontSelect.value = config.text.secondaryFontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+              }
+              
+              // Actualizar la vista
+              updateColors();
+              updateTextStyles();
+              
+              // Actualizar el ID actual
+              currentConfigId = config.id;
+          }
+
+          // --- FUNCIONES PRINCIPALES ---
+          function updateColors() {
+              // Actualizar variables CSS de Color
+              rootElement.style.setProperty('--header-color', colorInputs.header.value);
+              rootElement.style.setProperty('--button-color', colorInputs.button.value);
+              rootElement.style.setProperty('--bg-color', colorInputs.bg.value);
+              rootElement.style.setProperty('--text-color', colorInputs.text.value);
+              rootElement.style.setProperty('--title-color', colorInputs.title.value);
+              
+              // Aplicar color de fondo a toda la ventana
+              document.body.style.backgroundColor = colorInputs.bg.value;
+              
+              // Actualizar vistas previas y códigos hexadecimales
+              for (const key in colorInputs) {
+                  const value = colorInputs[key].value;
+                  colorPreviews[key].style.backgroundColor = value;
+                  colorHexes[key].textContent = value;
+              }
+          }
+          
+          function updateTextStyles() {
+              const paragraphSize = parseInt(paragraphFontSizeRange.value) + 'px';
+              const titleSize = parseInt(titleFontSizeRange.value) + 'px';
+              const primaryFamily = primaryFontSelect.value;
+              const secondaryFamily = secondaryFontSelect.value;
+              
+              // Actualizar valores mostrados
+              paragraphFontSizeValue.textContent = paragraphSize;
+              titleFontSizeValue.textContent = titleSize;
+
+              // Establecer variables CSS de Texto (SOLO para texto, no para botones/inputs)
+              rootElement.style.setProperty('--paragraph-font-size', paragraphSize);
+              rootElement.style.setProperty('--title-font-size', titleSize);
+              rootElement.style.setProperty('--local-font-family', primaryFamily);
+              rootElement.style.setProperty('--local-title-font-family', secondaryFamily);
+          }
+
+          function saveConfigsToStorage() {
+              localStorage.setItem('zayShopConfigs', JSON.stringify(savedConfigs));
+          }
+
+          function loadConfigsFromStorage() {
+              const saved = localStorage.getItem('zayShopConfigs');
+              if (saved) {
+                  try {
+                      savedConfigs = JSON.parse(saved);
+                      renderConfigsList();
+                  } catch (e) {
+                      console.error('Error al cargar configuraciones:', e);
+                      savedConfigs = [];
+                  }
+              }
+          }
+
+          function saveCurrentConfig(name) {
+              const config = getCurrentConfig();
+              config.name = name || `Configuración ${new Date().toLocaleDateString()}`;
+              config.timestamp = new Date().toISOString();
+              
+              // Verificar si ya existe una configuración con este ID
+              const existingIndex = savedConfigs.findIndex(c => c.id === currentConfigId);
+              
+              if (existingIndex !== -1 && currentConfigId) {
+                  // Actualizar configuración existente si tiene un ID
+                  savedConfigs[existingIndex] = config;
+                  showNotification('Configuración actualizada', 'success');
+              } else {
+                  // Generar un nuevo ID si se guarda como nueva
+                  config.id = Date.now().toString(); 
+                  savedConfigs.push(config);
+                  showNotification('Configuración guardada', 'success');
+              }
+              
+              saveConfigsToStorage();
+              renderConfigsList();
+              closeSaveModal();
+          }
+
+          function saveAsCurrentConfig() {
+              openSaveModal();
+          }
+
+          function openSaveModal() {
+              saveModal.classList.add('show');
+              configName.value = '';
+              configName.focus();
+          }
+
+          function closeSaveModal() {
+              saveModal.classList.remove('show');
+          }
+
+          function loadConfig(configId) {
+              const config = savedConfigs.find(c => c.id === configId);
+              if (config) {
+                  applyConfig(config);
+                  showNotification(`Configuración "${config.name}" cargada`, 'success');
+              }
+          }
+
+          function deleteConfig(configId) {
+              if (confirm('¿Estás seguro de que quieres eliminar esta configuración?')) {
+                  savedConfigs = savedConfigs.filter(c => c.id !== configId);
+                  saveConfigsToStorage();
+                  renderConfigsList();
+                  showNotification('Configuración eliminada', 'info');
+              }
+          }
+
+          function getFontFamilyName(fontFamilyValue) {
+              const fontMap = {
+                  "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif": "Segoe UI",
+                  "Roboto, sans-serif": "Roboto",
+                  "Arial, sans-serif": "Arial",
+                  "Georgia, serif": "Georgia",
+                  "'Courier New', monospace": "Courier New"
+              };
+              
+              return fontMap[fontFamilyValue] || fontFamilyValue;
+          }
+
+          function renderConfigsList() {
+              
+              // Obtener filtros de ambos campos de búsqueda
+              const sidebarFilter = searchConfigs.value.toLowerCase();
+              const modalFilter = searchModalConfigs.value.toLowerCase();
+              
+              // Ordenar por fecha (más reciente primero)
+              const sortedConfigs = savedConfigs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              
+              // Listas de elementos a actualizar: [ [elemento_lista_html, elemento_contador_html, filtro_aplicar] ]
+              const listsToUpdate = [
+                  [configsList, configsCount, sidebarFilter], 
+                  [modalConfigsList, modalConfigsCount, modalFilter]
+              ];
+              
+              listsToUpdate.forEach(([targetList, targetCount, currentFilter]) => {
+                  const currentFiltered = sortedConfigs.filter(config => 
+                      config.name.toLowerCase().includes(currentFilter)
+                  );
+
+                  if (currentFiltered.length === 0) {
+                      targetList.innerHTML = '<div class="empty-configs">No hay configuraciones guardadas</div>';
+                      targetCount.textContent = '0 guardadas';
+                      return;
+                  }
+                  
+                  targetList.innerHTML = '';
+                  currentFiltered.forEach(config => {
+                      const configItem = document.createElement('div');
+                      configItem.className = 'config-item';
+                      configItem.dataset.id = config.id;
+                      
+                      // Crear mini vista previa de colores (primeros 5)
+                      const colorValues = Object.values(config.colors);
+                      const colorsPreview = colorValues.map(color => 
+                          `<div class="color-dot" style="background-color: ${color}"></div>`
+                      ).join('');
+                      
+                      const date = new Date(config.timestamp);
+                      const formattedDate = date.toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                      });
+                      
+                      // Obtener los nombres amigables de las fuentes
+                      const primaryFontName = getFontFamilyName(config.text.primaryFontFamily);
+                      const secondaryFontName = getFontFamilyName(config.text.secondaryFontFamily);
+
+                      // Generar el HTML con información de tamaños
+                      configItem.innerHTML = `
+                          <div class="config-item-info">
+                              <div class="config-item-colors">${colorsPreview}</div>
+                              <div class="config-item-content">
+                                  <div class="config-item-main">
+                                      <div class="config-item-name">${config.name}</div>
+                                  </div>
+                                  <div class="config-item-date">${formattedDate}</div>
+                                  <div class="font-preview">
+                                      <span style="font-family: ${config.text.primaryFontFamily}">
+                                          Principal: ${primaryFontName} - ${config.text.paragraphFontSize}px
+                                      </span>
+                                      | 
+                                      <span style="font-family: ${config.text.secondaryFontFamily}">
+                                          Secundaria: ${secondaryFontName} - ${config.text.titleFontSize}px
+                                      </span>
+                                  </div>
+                              </div>
+                          </div>
+                      `;
+                      
+                      targetList.appendChild(configItem);
+                      
+                      // Agregar eventos para clic izquierdo (cargar) y clic derecho (menú contextual)
+                      configItem.addEventListener('click', function(e) {
+                          if (e.button === 0) { // Solo clic izquierdo
+                              loadConfig(this.dataset.id);
+                              configsModal.classList.remove('show'); // Cerrar el modal si se carga desde él
+                          }
+                      });
+                      
+                      configItem.addEventListener('contextmenu', function(e) {
+                          e.preventDefault();
+                          selectedConfigId = this.dataset.id; // Almacenar ID del preset
+                          
+                          // Mostrar opción de Cargar (solo para presets)
+                          contextMenu.querySelector('#contextMenuLoad').style.display = 'block'; 
+                          showContextMenu(e.clientX, e.clientY);
+                      });
+                  });
+                  
+                  targetCount.textContent = `${currentFiltered.length} guardada${currentFiltered.length !== 1 ? 's' : ''}`;
+              });
+          }
+
+          function showContextMenu(x, y) {
+              // Asegurarse de que el menú no salga de los límites de la pantalla
+              const maxX = window.innerWidth - contextMenu.offsetWidth;
+              const maxY = window.innerHeight - contextMenu.offsetHeight;
+
+              contextMenu.style.left = Math.min(x, maxX) + 'px';
+              contextMenu.style.top = Math.min(y, maxY) + 'px';
+              contextMenu.classList.add('show');
+          }
+
+          function hideContextMenu() {
+              contextMenu.classList.remove('show');
+              selectedConfigId = null; 
+          }
+
+          function exportConfig() {
+              const config = getCurrentConfig();
+              const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+              const downloadAnchorNode = document.createElement('a');
+              downloadAnchorNode.setAttribute("href", dataStr);
+              downloadAnchorNode.setAttribute("download", `zayshop-config-${new Date().getTime()}.json`);
+              document.body.appendChild(downloadAnchorNode);
+              downloadAnchorNode.click();
+              downloadAnchorNode.remove();
+              showNotification('Configuración exportada', 'success');
+          }
+
+          function resetAll() {
+              if (confirm('¿Estás seguro de que quieres restablecer todos los valores a los predeterminados?')) {
+                  // Restablecer colores
+                  colorInputs.header.value = defaultColors.header;
+                  colorInputs.button.value = defaultColors.button;
+                  colorInputs.bg.value = defaultColors.bg;
+                  colorInputs.text.value = defaultColors.text;
+                  colorInputs.title.value = defaultColors.title;
+                  
+                  // Restablecer texto
+                  paragraphFontSizeRange.value = 16;
+                  titleFontSizeRange.value = 24;
+                  primaryFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                  secondaryFontSelect.value = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                  
+                  // Actualizar la vista
+                  updateColors();
+                  updateTextStyles();
+                  
+                  showNotification('Configuración restablecida', 'info');
+              }
+          }
+
+          // --- EVENT LISTENERS ---
+          // Eventos para colores
+          for (const key in colorInputs) {
+              colorInputs[key].addEventListener('input', updateColors);
+          }
+          
+          // Eventos para texto
+          paragraphFontSizeRange.addEventListener('input', updateTextStyles);
+          titleFontSizeRange.addEventListener('input', updateTextStyles);
+          primaryFontSelect.addEventListener('change', updateTextStyles);
+          secondaryFontSelect.addEventListener('change', updateTextStyles);
+          
+          // Eventos para gestión de configuraciones
+          saveConfigBtn.addEventListener('click', () => saveCurrentConfig(null));
+          saveAsConfigBtn.addEventListener('click', saveAsCurrentConfig);
+          exportConfigBtn.addEventListener('click', exportConfig);
+          resetBtn.addEventListener('click', resetAll);
+          
+          // Eventos del modal de guardar
+          cancelSave.addEventListener('click', closeSaveModal);
+          confirmSave.addEventListener('click', () => {
+              if (configName.value.trim()) {
+                  saveCurrentConfig(configName.value.trim());
+              } else {
+                  showNotification('Por favor, ingresa un nombre para la configuración', 'error');
+              }
+          });
+          
+          // Eventos del NUEVO modal de presets
+          openConfigsModalBtn.addEventListener('click', () => {
+              renderConfigsList(); 
+              configsModal.classList.add('show');
+              searchModalConfigs.focus();
+          });
+
+          closeConfigsModal.addEventListener('click', () => {
+              configsModal.classList.remove('show');
+          });
+
+          // Evento para búsqueda en el modal
+          searchModalConfigs.addEventListener('input', function() {
+              renderConfigsList(); 
+          });
+          
+          // Evento para búsqueda en el sidebar
+          searchConfigs.addEventListener('input', function() {
+              renderConfigsList();
+          });
+          
+          // Eventos del menú contextual (Cargar y Eliminar)
+          contextMenuLoad.addEventListener('click', () => {
+              if (selectedConfigId) {
+                  loadConfig(selectedConfigId);
+                  configsModal.classList.remove('show'); // Cerrar el modal al cargar si se abrió desde allí
+              }
+              hideContextMenu();
+          });
+
+          contextMenuDelete.addEventListener('click', () => {
+              if (selectedConfigId) {
+                  deleteConfig(selectedConfigId);
+              }
+              hideContextMenu();
+          });
+          
+          // Cerrar menú contextual y limpiar variables al hacer clic en otra parte
+          document.addEventListener('click', hideContextMenu);
+          document.addEventListener('contextmenu', (e) => {
+              if (!e.target.closest('.config-item')) {
+                  hideContextMenu();
+              }
+          });
+
+          // Cerrar modales al hacer clic fuera de ellos
+          saveModal.addEventListener('click', function(e) {
+              if (e.target === this) {
+                  closeSaveModal();
+              }
+          });
+          configsModal.addEventListener('click', function(e) {
+              if (e.target === this) {
+                  configsModal.classList.remove('show');
+              }
+          });
+          
+          // Evento para la tecla Enter en el modal de guardar
+          configName.addEventListener('keypress', function(e) {
+              if (e.key === 'Enter') {
+                  confirmSave.click();
+              }
+          });
+          
+          // --- INICIALIZACIÓN ---
+          updateColors();
+          updateTextStyles();
+          loadConfigsFromStorage();
+      });
+</script>
+
 <style>
-/* Variables CSS (Adaptadas del código proporcionado) */
-:root {
-  --header-color: #28a745;
-  --button-color: #198754;
-  --bg-color: #f8f9fa;
-  --text-color: #333333;
-  --title-color: #212529;
-  /* Variables para personalización de texto */
-  --local-font-size: 1em;
-  --local-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --local-title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --local-primary-font-size: 16px; /* Default for primary font size */
-  --local-secondary-font-size: 20px; /* Default for secondary font size */
-  /* Nuevas variables para tipografía personalizable */
-  --paragraph-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --paragraph-font-size: 16px;
-  --title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --title-font-size: 20px;
-}
-
-html,
-body {
-  height: 100%;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  margin: 0;
-  padding: 0;
-}
-
-/* Aplicar color de texto y fuente a todos los elementos */
-* {
-  color: var(--text-color);
-  font-size: inherit;
-}
-
-/* Aplicar color de títulos a elementos de encabezado */
-/* EXCLUIR sidebar y config-bar de la fuente secundaria */
-h1:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6),
-h2:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6),
-h3:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6),
-h4:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6),
-h5:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6),
-h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.color-sidebar h4):not(.color-sidebar h5):not(.color-sidebar h6):not(.config-bar h1):not(.config-bar h2):not(.config-bar h3):not(.config-bar h4):not(.config-bar h5):not(.config-bar h6) {
-  color: var(--title-color);
-  font-family: var(--local-title-font-family);
-}
-
-/* Barra de configuración superior - FUENTE FIJA */
-.config-bar {
-  background-color: white;
-  padding: 10px 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e9ecef;
-  position: fixed;
-  width: 100%;
-  top: 0;
-  left: 0;
-  z-index: 1100;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 16px; /* Fixed font size for config bar */
-}
-
-.config-title {
-  font-weight: 600;
-  margin: 0;
-  font-size: 1.2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
-
-.config-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.config-btn {
-  background: none;
-  border: 1px solid #dee2e6;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 14px; /* Fixed font size for config buttons */
-}
-
-.config-btn:hover {
-  background-color: #f8f9fa;
-}
-
-/* Sidebar Muy Extendido (Posición Fija a la Izquierda) - FUENTE FIJA */
-.color-sidebar {
-  position: fixed;
-  top: 60px;
-  left: 0;
-  bottom: 0;
-  height: calc(100vh - 60px);
-  background: white;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-  padding: 30px;
-  z-index: 1000;
-  width: 380px;
-  overflow-y: auto;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 16px; /* Fixed font size for sidebar */
-}
-
-.color-sidebar * {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-  font-size: 14px; /* Fixed font size for all elements within sidebar */
-}
-
-.color-control {
-  margin-bottom: 25px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.color-label {
-  font-size: 16px;
-  margin-bottom: 12px;
-  font-weight: 600;
-}
-
-.color-input {
-  width: 100%;
-  height: 50px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.color-preview {
-  display: flex;
-  margin-top: 12px;
-  font-size: 14px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.color-square-preview {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  box-sizing: border-box;
-}
-
-.color-hex {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.back-to-home {
-  color: var(--header-color) !important;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.back-to-home:hover {
-  text-decoration: underline;
-}
-
-.reset-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 15px;
-  border-radius: 8px;
-  width: 100%;
-  margin-top: 20px;
-  transition: background-color 0.3s;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.reset-btn:hover {
-  background-color: #5a6268;
-  transform: translateY(-2px);
-}
-
-/* Estilos para controles de tipografía */
-.font-control {
-  margin-bottom: 25px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.font-label {
-  font-size: 16px;
-  margin-bottom: 12px;
-  font-weight: 600;
-}
-
-.font-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  background: white;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.font-preview {
-  font-size: 14px;
-  padding: 8px;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  margin-top: 8px;
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.font-size-slider {
-  width: 100%;
-  margin-bottom: 8px;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 3px;
-  background: #dee2e6;
-  outline: none;
-}
-
-.font-size-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--header-color);
-  cursor: pointer;
-}
-
-.font-size-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--header-color);
-  cursor: pointer;
-  border: none;
-}
-
-.font-size-display {
-  text-align: center;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--header-color);
-  background: #f8f9fa;
-  padding: 5px 10px;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
-  margin-top: 5px;
-}
-
-/* Mejorar la apariencia de los controles de tipografía */
-.font-control {
-  transition: all 0.3s ease;
-}
-
-.font-control:hover {
-  background: #f0f8ff;
-  border-color: var(--header-color);
-}
-
-.font-select:focus,
-.font-size-slider:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-}
-
-/* Asegurar que los controles funcionen en todos los navegadores */
-.font-size-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: linear-gradient(to right, #dee2e6 0%, var(--header-color) 0%);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-}
-
-.font-size-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--header-color);
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  transition: all 0.3s;
-}
-
-.font-size-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-.font-size-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--header-color);
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  transition: all 0.3s;
-}
-
-.font-size-slider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-.sidebar-title {
-  text-align: center;
-  margin-bottom: 30px;
-  font-weight: 700;
-  border-bottom: 3px solid #eee;
-  padding-bottom: 20px;
-  font-size: 1.5rem;
-  color: var(--title-color) !important;
-}
-
-.brand-title {
-  color: var(--title-color) !important;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
-.welcome-text {
-  color: var(--text-color);
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-/* Asegurar que los estilos se apliquen correctamente */
-.example-page.texto-personalizable p,
-.example-page.texto-personalizable label,
-.example-page.texto-personalizable a:not(.config-btn):not(.back-to-home),
-.example-page.texto-personalizable .form-control,
-.example-page.texto-personalizable .nav-link,
-.example-page.texto-personalizable .footer-link,
-.example-page.texto-personalizable .hero-description,
-.example-page.texto-personalizable .feature-description,
-.example-page.texto-personalizable .content-text,
-.example-page.texto-personalizable .example-list li,
-.example-page.texto-personalizable .footer-text {
-  font-family: var(--paragraph-font-family) !important;
-  font-size: var(--paragraph-font-size) !important;
-  transition: font-family 0.3s ease, font-size 0.3s ease;
-}
-
-/* Aplicar fuente secundaria a títulos dentro de example-page */
-.example-page.texto-personalizable h1,
-.example-page.texto-personalizable h2,
-.example-page.texto-personalizable h3,
-.example-page.texto-personalizable h4,
-.example-page.texto-personalizable h5,
-.example-page.texto-personalizable h6,
-.example-page.texto-personalizable .site-title,
-.example-page.texto-personalizable .hero-title,
-.example-page.texto-personalizable .section-title,
-.example-page.texto-personalizable .feature-title {
-  font-family: var(--title-font-family) !important;
-  font-size: var(--title-font-size) !important;
-  transition: font-family 0.3s ease, font-size 0.3s ease;
-}
-
-/* Tamaños específicos para diferentes tipos de títulos */
-.example-page.texto-personalizable .site-title {
-  font-size: calc(var(--title-font-size) * 1.2) !important;
-}
-
-.example-page.texto-personalizable .hero-title {
-  font-size: calc(var(--title-font-size) * 1.5) !important;
-}
-
-.example-page.texto-personalizable .section-title {
-  font-size: calc(var(--title-font-size) * 1.1) !important;
-}
-
-.example-page.texto-personalizable .feature-title {
-  font-size: var(--title-font-size) !important;
-}
-
-/* Keep constant layout size for inputs and buttons within the example page */
-.example-page.texto-personalizable .form-control,
-.example-page.texto-personalizable .cta-button,
-.example-page.texto-personalizable .submit-button {
-  font-size: 1rem !important;
-}
-
-.option-group {
-  margin-bottom: 20px;
-}
-
-.option-label {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.option-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  background: white;
-}
-
-/* Estilos para la gestión de configuraciones */
-.config-management {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.config-management-title {
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  font-weight: 600;
-}
-
-.config-management-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.config-management-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  font-weight: 500;
-}
-
-.config-management-btn:hover {
-  background-color: #0069d9;
-}
-
-.config-management-btn.secondary {
-  background-color: #6c757d;
-}
-
-.config-management-btn.secondary:hover {
-  background-color: #5a6268;
-}
-
-.config-management-btn.success {
-  background-color: #28a745;
-}
-
-.config-management-btn.success:hover {
-  background-color: #218838;
-}
-
-/* Estilos para notificaciones */
-.notification {
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  padding: 15px 20px;
-  border-radius: 5px;
-  color: white;
-  font-weight: 500;
-  z-index: 1200;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transform: translateX(400px);
-  transition: transform 0.3s ease;
-}
-
-.notification.show {
-  transform: translateX(0);
-}
-
-.notification.success {
-  background-color: #28a745;
-}
-
-.notification.error {
-  background-color: #dc3545;
-}
-
-.notification.info {
-  background-color: #17a2b8;
-}
-
-/* Estilos para la lista de configuraciones */
-.configs-list {
-  margin-top: 20px;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #e9ecef;
-  border-radius: 5px;
-  padding: 10px;
-}
-
-.config-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #f1f1f1;
-  transition: background-color 0.2s;
-  cursor: pointer;
-}
-
-.config-item:hover {
-  background-color: #f8f9fa;
-}
-
-.config-item:last-child {
-  border-bottom: none;
-}
-
-.config-item-info {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column; /* Stack name and date */
-  gap: 2px;
-}
-
-.config-item-colors {
-  display: flex;
-  gap: 4px;
-  margin-right: 10px;
-}
-
-.color-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid #ddd;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.config-item-name {
-  font-weight: 600;
-  margin-bottom: 0px; /* Adjusted to remove extra margin */
-}
-
-.config-item-date {
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.config-item-actions {
-  display: flex;
-  gap: 5px;
-}
-
-.config-item-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 3px;
-  transition: background-color 0.2s;
-}
-
-.config-item-btn:hover {
-  background-color: #e9ecef;
-}
-
-.config-item-btn.delete {
-  color: #dc3545;
-}
-
-.empty-configs {
-  text-align: center;
-  padding: 20px;
-  color: #6c757d;
-  font-style: italic;
-}
-
-.search-box {
-  margin-bottom: 15px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-}
-
-.configs-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.configs-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.configs-count {
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-/* Modal para guardar configuración */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1300;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
-}
-
-.modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 10px;
-  padding: 25px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  transform: translateY(-20px);
-  transition: transform 0.3s;
-}
-
-.modal-overlay.show .modal-content {
-  transform: translateY(0);
-}
-
-.modal-title {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 1.3rem;
-}
-
-.modal-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  margin-bottom: 15px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.modal-btn {
-  padding: 8px 15px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.modal-btn.primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.modal-btn.secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.config-item-content {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-.config-item-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.font-preview {
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-top: 2px;
-}
-
-/* Menú contextual para eliminar configuraciones */
-.context-menu {
-  position: fixed;
-  background: white;
-  border-radius: 5px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 1400;
-  min-width: 150px;
-  display: none;
-}
-
-.context-menu.show {
-  display: block;
-}
-
-.context-menu-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.context-menu-item:hover {
-  background-color: #f8f9fa;
-}
-
-.context-menu-item.delete {
-  color: #dc3545;
-}
-
-.context-menu-item i {
-  margin-right: 8px;
-  width: 16px;
-}
-
-/* Right sidebar for saved configurations */
-.configs-sidebar {
-  position: fixed;
-  top: 60px;
-  right: 0;
-  bottom: 0;
-  width: 300px;
-  background: white;
-  box-shadow: -2px 0 10px rgba(0,0,0,0.06);
-  padding: 20px;
-  z-index: 1000;
-  overflow-y: auto;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
-
-/* Main content area to make space for both sidebars */
-.main-content {
-  background-color: var(--bg-color); /* Ensure background changes with color */
-  min-height: calc(100vh - 60px); /* Adjust for config bar height */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  margin-top: 60px; /* Height of .config-bar */
-  margin-left: 380px; /* Width of .color-sidebar */
-  margin-right: 300px; /* Width of .configs-sidebar */
-  width: calc(100% - 380px - 300px); /* Remaining width */
-}
-
-/* Example page container styles */
-.example-page-container {
-  min-height: calc(100vh - 60px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 20px;
-  margin-left: 0;
-  margin-right: 0;
-  margin-top: 0;
-  width: 100%;
-  background-color: var(--bg-color);
-}
-
-/* Example page styles */
-.example-page {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-  overflow: hidden;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* Header styles */
-.example-header {
-  background-color: var(--header-color);
-  color: white;
-  padding: 20px 30px;
-  border-bottom: 3px solid var(--button-color);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.site-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  color: white !important;
-}
-
-.main-nav {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.nav-link {
-  color: white !important;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-}
-
-.nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  text-decoration: none;
-}
-
-/* Main content styles */
-.example-main-content {
-  padding: 40px 30px;
-}
-
-/* Hero section */
-.hero-section {
-  text-align: center;
-  margin-bottom: 50px;
-  padding: 40px 0;
-  background: linear-gradient(135deg, var(--bg-color) 0%, rgba(255,255,255,0.8) 100%);
-  border-radius: 10px;
-}
-
-.hero-title {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  color: var(--title-color) !important;
-}
-
-.hero-description {
-  font-size: 1.2rem;
-  margin-bottom: 30px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-  color: var(--text-color);
-}
-
-.cta-button {
-  background-color: var(--button-color);
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.cta-button:hover {
-  background-color: var(--header-color);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-/* Features section */
-.features-section {
-  margin-bottom: 50px;
-}
-
-.section-title {
-  font-size: 2rem;
-  margin-bottom: 30px;
-  text-align: center;
-  color: var(--title-color) !important;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  margin-top: 40px;
-}
-
-.feature-card {
-  background: white;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-  border-left: 4px solid var(--header-color);
-  transition: transform 0.3s;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-}
-
-.feature-title {
-  font-size: 1.3rem;
-  margin-bottom: 15px;
-  color: var(--title-color) !important;
-}
-
-.feature-description {
-  color: var(--text-color);
-  line-height: 1.6;
-}
-
-/* Content section */
-.content-section {
-  margin-bottom: 50px;
-}
-
-.content-text {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.content-text p {
-  margin-bottom: 20px;
-  line-height: 1.7;
-  color: var(--text-color);
-}
-
-.example-list {
-  margin: 20px 0;
-  padding-left: 30px;
-}
-
-.example-list li {
-  margin-bottom: 10px;
-  color: var(--text-color);
-}
-
-/* Form section */
-.form-section {
-  background: var(--bg-color);
-  padding: 40px;
-  border-radius: 10px;
-  margin-bottom: 50px;
-}
-
-.example-form {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.form-group {
-  margin-bottom: 25px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-  background: white;
-  color: var(--text-color);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--header-color);
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-}
-
-.submit-button {
-  background-color: var(--button-color);
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  width: 100%;
-}
-
-.submit-button:hover {
-  background-color: var(--header-color);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-/* Footer styles */
-.example-footer {
-  background-color: var(--title-color);
-  color: white;
-  padding: 30px;
-  text-align: center;
-}
-
-.footer-content {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.footer-text {
-  margin-bottom: 20px;
-  color: white !important;
-}
-
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
-}
-
-.footer-link {
-  color: white !important;
-  text-decoration: none;
-  transition: opacity 0.3s;
-}
-
-.footer-link:hover {
-  opacity: 0.8;
-  text-decoration: none;
-}
-
+      /* Variables CSS (Actualizadas con los nuevos sliders) */
+      :root {
+          --header-color: #28a745;
+          --button-color: #198754;
+          --bg-color: #f8f9fa;
+          --text-color: #333333;
+          --title-color: #212529;
+          /* Nuevas variables para tamaños de fuente */
+          --paragraph-font-size: 16px;
+          --title-font-size: 24px;
+          --local-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          --local-title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      
+      html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          background-color: var(--bg-color); /* Color de fondo aplicado a toda la ventana */
+          color: var(--text-color);
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          transition: all 0.3s ease;
+      }
+      
+      /* Aplicar color de texto y fuente a todos los elementos */
+      * {
+          color: var(--text-color);
+      }
+      
+      /* Barra de configuración superior - FUENTE FIJA */
+      .config-bar {
+          background-color: white;
+          padding: 10px 20px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid #e9ecef;
+          position: fixed; /* Asegura que la barra superior se quede fija */
+          width: 100%;
+          top: 0;
+          left: 0;
+          z-index: 1100; /* Alto z-index para estar sobre el sidebar */
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .config-title {
+          font-weight: 600;
+          margin: 0;
+          font-size: 1.2rem;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .config-actions {
+          display: flex;
+          gap: 10px;
+      }
+      
+      .config-btn {
+          background: none;
+          border: 1px solid #dee2e6;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.3s;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .config-btn:hover {
+          background-color: #f8f9fa;
+      }
+      
+      /* Contenedor principal de Vista Previa */
+      .preview-container {
+          min-height: calc(100vh - 60px); 
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 80px 20px 20px;
+          /* Margin para compensar ambos sidebars */
+          margin-left: 380px; 
+          margin-right: 380px;
+          width: calc(100% - 760px);
+      }
+      
+      .preview-card {
+          background: white;
+          border-radius: 10px;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+          overflow: hidden;
+          width: 100%;
+          max-width: 900px;
+      }
+      
+      .preview-header {
+          background-color: white;
+          padding: 40px 40px 20px;
+          text-align: center;
+          transition: background-color 0.3s ease;
+          border-bottom: 5px solid var(--header-color); 
+      }
+      
+      .preview-main-title {
+          color: var(--title-color) !important;
+          font-family: var(--local-title-font-family) !important;
+          font-size: var(--title-font-size) !important;
+          font-weight: 700;
+          margin-bottom: 10px;
+      }
+      
+      .preview-subtitle {
+          color: var(--text-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+          opacity: 0.8;
+      }
+      
+      .preview-body {
+          padding: 40px;
+      }
+      
+      .preview-section {
+          margin-bottom: 40px;
+      }
+      
+      .preview-section-title {
+          color: var(--title-color) !important;
+          font-family: var(--local-title-font-family) !important;
+          font-size: var(--title-font-size) !important;
+          margin-bottom: 20px;
+          border-bottom: 2px solid var(--header-color);
+          padding-bottom: 10px;
+      }
+      
+      .preview-section-subtitle {
+          color: var(--title-color) !important;
+          font-family: var(--local-title-font-family) !important;
+          font-size: calc(var(--title-font-size) * 0.8) !important;
+          margin-bottom: 15px;
+      }
+      
+      .preview-paragraph {
+          color: var(--text-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+          line-height: 1.6;
+          margin-bottom: 15px;
+      }
+      
+      .preview-list {
+          color: var(--text-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+          padding-left: 20px;
+      }
+      
+      .preview-list-item {
+          margin-bottom: 8px;
+      }
+      
+      .preview-buttons {
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+      }
+      
+      .preview-btn {
+          padding: 12px 24px;
+          border: none;
+          border-radius: 5px;
+          font-family: var(--local-font-family) !important;
+          font-size: 16px !important; /* Tamaño fijo para botones */
+          cursor: pointer;
+          transition: all 0.3s;
+      }
+      
+      .preview-btn.primary {
+          background-color: var(--button-color);
+          color: white;
+      }
+      
+      .preview-btn.secondary {
+          background-color: #6c757d;
+          color: white;
+      }
+      
+      .preview-btn:hover {
+          opacity: 0.9;
+          transform: translateY(-2px);
+      }
+      
+      .preview-link {
+          color: var(--header-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+          text-decoration: none;
+      }
+      
+      .preview-link:hover {
+          text-decoration: underline;
+      }
+      
+      .preview-form {
+          max-width: 500px;
+      }
+      
+      .preview-form-group {
+          margin-bottom: 20px;
+      }
+      
+      .preview-label {
+          display: block;
+          color: var(--text-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+          margin-bottom: 8px;
+          font-weight: 500;
+      }
+      
+      .preview-input {
+          width: 100%;
+          padding: 12px 15px;
+          border: 1px solid #dee2e6;
+          border-radius: 5px;
+          font-family: var(--local-font-family) !important;
+          font-size: 16px !important; /* Tamaño fijo para inputs */
+          transition: border-color 0.3s;
+      }
+      
+      .preview-input:focus {
+          outline: none;
+          border-color: var(--header-color);
+      }
+      
+      .preview-checkbox {
+          margin-right: 8px;
+      }
+      
+      .preview-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+      }
+      
+      .preview-card-item {
+          background: #f8f9fa;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #e9ecef;
+      }
+      
+      .preview-card-title {
+          color: var(--title-color) !important;
+          font-family: var(--local-title-font-family) !important;
+          font-size: calc(var(--title-font-size) * 0.7) !important;
+          margin-bottom: 10px;
+      }
+      
+      .preview-card-text {
+          color: var(--text-color);
+          font-family: var(--local-font-family) !important;
+          font-size: var(--paragraph-font-size) !important;
+      }
+      
+      /* Sidebar Izquierdo Muy Extendido (Posición Fija a la Izquierda) - FUENTE FIJA */
+      .color-sidebar {
+          position: fixed;
+          top: 60px; /* Debajo de la barra de configuración */
+          left: 0;
+          bottom: 0;
+          height: calc(100vh - 60px);
+          background: white;
+          box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+          padding: 30px;
+          z-index: 1000;
+          width: 380px;
+          overflow-y: auto;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .color-sidebar * {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      /* Nuevo Sidebar Derecho para Configuraciones Guardadas */
+      .config-sidebar {
+          position: fixed;
+          top: 60px; /* Debajo de la barra de configuración */
+          right: 0;
+          bottom: 0;
+          height: calc(100vh - 60px);
+          background: white;
+          box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+          padding: 30px;
+          z-index: 1000;
+          width: 380px;
+          overflow-y: auto;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .config-sidebar * {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+      
+      .color-control {
+          margin-bottom: 25px;
+          padding: 15px;
+          background: #f8f9fa;
+          border-radius: 8px;
+          border: 1px solid #e9ecef;
+      }
+      
+      .color-label {
+          font-size: 16px;
+          margin-bottom: 12px;
+          font-weight: 600;
+      }
+      
+      .color-input {
+          width: 100%;
+          height: 50px;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+      }
+      
+      .color-preview {
+          display: flex;
+          margin-top: 12px;
+          font-size: 14px;
+          align-items: center;
+          justify-content: space-between;
+      }
+      
+      .color-hex {
+          font-weight: 600;
+          font-size: 15px;
+      }
+      
+      .back-to-home {
+          /* Usa la variable de color del header */
+          color: var(--header-color) !important; 
+          text-decoration: none;
+          font-weight: 500;
+      }
+      
+      .back-to-home:hover {
+          text-decoration: underline;
+      }
+      
+      .reset-btn {
+          background-color: #6c757d;
+          color: white;
+          border: none;
+          padding: 15px;
+          border-radius: 8px;
+          width: 100%;
+          margin-top: 20px;
+          transition: background-color 0.3s;
+          font-weight: 600;
+          font-size: 16px;
+      }
+      
+      .reset-btn:hover {
+          background-color: #5a6268;
+          transform: translateY(-2px);
+      }
+      
+      .sidebar-title {
+          text-align: center;
+          margin-bottom: 30px;
+          font-weight: 700;
+          border-bottom: 3px solid #eee;
+          padding-bottom: 20px;
+          font-size: 1.5rem;
+          /* Aseguramos que el color del título aplique aquí */
+          color: var(--title-color) !important;
+      }
+      
+      .option-group {
+          margin-bottom: 20px;
+      }
+      
+      .option-label {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          display: block;
+      }
+      
+      .option-select {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #dee2e6;
+          border-radius: 5px;
+          background: white;
+      }
+      
+      /* Estilos para la gestión de configuraciones (ahora en sidebar derecho) */
+      .config-management {
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #e9ecef;
+      }
+      
+      .config-management-title {
+          font-size: 1.2rem;
+          margin-bottom: 15px;
+          font-weight: 600;
+      }
+      
+      .config-management-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+      }
+      
+      .config-management-btn {
+          background-color: #007bff;
+          color: white;
+          border: none;
+          padding: 10px;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+          font-weight: 500;
+      }
+      
+      .config-management-btn:hover {
+          background-color: #0069d9;
+      }
+      
+      .config-management-btn.secondary {
+          background-color: #6c757d;
+      }
+      
+      .config-management-btn.secondary:hover {
+          background-color: #5a6268;
+      }
+      
+      .config-management-btn.success {
+          background-color: #28a745;
+      }
+      
+      .config-management-btn.success:hover {
+          background-color: #218838;
+      }
+      
+      /* Estilos para notificaciones */
+      .notification {
+          position: fixed;
+          top: 80px;
+          right: 20px;
+          padding: 15px 20px;
+          border-radius: 5px;
+          color: white;
+          font-weight: 500;
+          z-index: 1200;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          transform: translateX(400px);
+          transition: transform 0.3s ease;
+      }
+      
+      .notification.show {
+          transform: translateX(0);
+      }
+      
+      .notification.success {
+          background-color: #28a745;
+      }
+      
+      .notification.error {
+          background-color: #dc3545;
+      }
+      
+      .notification.info {
+          background-color: #17a2b8;
+      }
+      
+      /* Estilos para la lista de configuraciones */
+      .configs-list {
+          margin-top: 20px;
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #e9ecef;
+          border-radius: 5px;
+          padding: 10px;
+      }
+      
+      .config-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px;
+          border-bottom: 1px solid #f1f1f1;
+          transition: background-color 0.2s;
+          cursor: pointer; /* Cursor de puntero para indicar interactividad */
+      }
+      
+      .config-item:hover {
+          background-color: #f8f9fa;
+      }
+      
+      .config-item:last-child {
+          border-bottom: none;
+      }
+      
+      .config-item-info {
+          flex-grow: 1;
+          display: flex;
+          align-items: flex-start; /* Alineación cambiada para mejor flujo */
+          gap: 10px;
+      }
+      
+      .config-item-colors {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-right: 10px;
+          margin-top: 5px;
+      }
+      
+      .color-dot {
+          width: 10px; /* Reducido para mejor vista en lista */
+          height: 10px; /* Reducido para mejor vista en lista */
+          border-radius: 50%;
+          border: 1px solid #ddd;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      .config-item-name {
+          font-weight: 600;
+          margin-bottom: 3px;
+          font-size: 15px;
+      }
+      
+      .config-item-date {
+          font-size: 0.8rem;
+          color: #6c757d;
+      }
+      
+      /* .config-item-actions ha sido eliminado del CSS */
+      
+      .empty-configs {
+          text-align: center;
+          padding: 20px;
+          color: #6c757d;
+          font-style: italic;
+      }
+      
+      .search-box {
+          margin-bottom: 15px;
+      }
+      
+      .search-input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #dee2e6;
+          border-radius: 5px;
+      }
+      
+      .configs-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+      }
+      
+      .configs-title {
+          font-size: 1rem;
+          font-weight: 600;
+          margin: 0;
+      }
+      
+      .configs-count {
+          font-size: 0.8rem;
+          color: #6c757d;
+      }
+      
+      /* Modal para guardar configuración */
+      .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1300;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.3s, visibility 0.3s;
+      }
+      
+      .modal-overlay.show {
+          opacity: 1;
+          visibility: visible;
+      }
+      
+      .modal-content {
+          background: white;
+          border-radius: 10px;
+          padding: 25px;
+          width: 90%;
+          max-width: 400px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+          transform: translateY(-20px);
+          transition: transform 0.3s;
+      }
+      
+      .modal-overlay.show .modal-content {
+          transform: translateY(0);
+      }
+      
+      .modal-title {
+          margin-top: 0;
+          margin-bottom: 15px;
+          font-size: 1.3rem;
+      }
+      
+      .modal-input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #dee2e6;
+          border-radius: 5px;
+          margin-bottom: 15px;
+      }
+      
+      .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+      }
+      
+      .modal-btn {
+          padding: 8px 15px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-weight: 500;
+      }
+      
+      .modal-btn.primary {
+          background-color: #007bff;
+          color: white;
+      }
+      
+      .modal-btn.secondary {
+          background-color: #6c757d;
+          color: white;
+      }
+      
+      .config-item-content {
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+      }
+      
+      .config-item-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+      }
+      
+      .font-preview {
+          font-size: 0.8rem;
+          color: #6c757d;
+          margin-top: 2px;
+      }
+      
+      /* Menú contextual */
+      .context-menu {
+          position: fixed;
+          background: white;
+          border-radius: 5px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 1400;
+          min-width: 150px;
+          display: none;
+          border: 1px solid #ddd;
+      }
+      
+      .context-menu.show {
+          display: block;
+      }
+      
+      .context-menu-item {
+          padding: 10px 15px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          white-space: nowrap; /* Evitar que el texto se rompa */
+      }
+      
+      .context-menu-item:hover {
+          background-color: #f8f9fa;
+      }
+      
+      .context-menu-item.delete {
+          color: #dc3545;
+          border-top: 1px solid #eee; /* Separador para Eliminar */
+      }
+      
+      .context-menu-item i {
+          margin-right: 8px;
+          width: 16px;
+      }
 </style>
