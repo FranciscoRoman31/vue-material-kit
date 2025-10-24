@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tipografía</title>
+    <style>
+        :root {
+            --paragraph-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --paragraph-font-size: 16px;
+            --title-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --title-font-size: 20px;
+        }
+        
+        .example-page p {
+            font-family: var(--paragraph-font-family);
+            font-size: var(--paragraph-font-size);
+        }
+        
+        .example-page h1, .example-page h2, .example-page h3 {
+            font-family: var(--title-font-family);
+            font-size: var(--title-font-size);
+        }
+    </style>
+</head>
+<body>
+    <div class="example-page">
+        <h1>Título Principal</h1>
+        <p>Este es un párrafo de ejemplo que debería usar la tipografía configurada.</p>
+        <h2>Subtítulo</h2>
+        <p>Otro párrafo para probar la configuración de tipografía.</p>
+    </div>
+    
+    <script>
+        // Test de cambio de tipografía
+        setTimeout(() => {
+            document.documentElement.style.setProperty('--paragraph-font-family', 'Arial, sans-serif');
+            document.documentElement.style.setProperty('--paragraph-font-size', '18px');
+            document.documentElement.style.setProperty('--title-font-family', 'Georgia, serif');
+            document.documentElement.style.setProperty('--title-font-size', '24px');
+            console.log('Tipografía cambiada');
+        }, 2000);
+    </script>
+</body>
+</html>

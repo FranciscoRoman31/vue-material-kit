@@ -21,6 +21,9 @@ onMounted(() => {
   // Inicializar controles de tipografía
   initializeFontControls();
   
+  // Inicializar controles de color
+  initializeColorControls();
+  
   // Cargar configuración actual en los controles
   loadCurrentConfig();
 });
@@ -40,13 +43,21 @@ function applyGlobalConfig() {
   root.style.setProperty('--text-color', config.colors.text);
   root.style.setProperty('--title-color', config.colors.title);
   
-  // Aplicar tipografía
+  // Aplicar tipografía - Asegurar que se apliquen correctamente
   root.style.setProperty('--paragraph-font-family', config.typography.paragraphFont);
   root.style.setProperty('--paragraph-font-size', config.typography.paragraphSize);
   root.style.setProperty('--title-font-family', config.typography.titleFont);
   root.style.setProperty('--title-font-size', config.typography.titleSize);
   
   console.log('Configuración global aplicada:', config);
+  
+  // Forzar actualización de la vista
+  setTimeout(() => {
+    document.querySelectorAll('.example-page *').forEach(el => {
+      el.style.fontFamily = 'inherit';
+      el.style.fontSize = 'inherit';
+    });
+  }, 10);
 }
 
 // Función para aplicar configuración guardada desde localStorage
@@ -95,8 +106,13 @@ function initializeFontControls() {
     paragraphFontSelect.addEventListener('change', function() {
       const fontFamily = this.value;
       updateTypography({ paragraphFont: fontFamily });
-      // Aplicar inmediatamente
+      
+      // Aplicar inmediatamente a CSS variables y elementos
       document.documentElement.style.setProperty('--paragraph-font-family', fontFamily);
+      
+      // Actualizar elementos de párrafos en tiempo real
+      updateParagraphElements(fontFamily, null);
+      
       console.log('Párrafo font changed to:', fontFamily);
     });
   }
@@ -105,8 +121,13 @@ function initializeFontControls() {
     paragraphFontSizeSlider.addEventListener('input', function() {
       const fontSize = this.value + 'px';
       updateTypography({ paragraphSize: fontSize });
+      
       // Aplicar inmediatamente
       document.documentElement.style.setProperty('--paragraph-font-size', fontSize);
+      
+      // Actualizar elementos de párrafos en tiempo real
+      updateParagraphElements(null, fontSize);
+      
       if (paragraphFontSizeDisplay) {
         paragraphFontSizeDisplay.textContent = fontSize;
       }
@@ -119,8 +140,13 @@ function initializeFontControls() {
     titleFontSelect.addEventListener('change', function() {
       const fontFamily = this.value;
       updateTypography({ titleFont: fontFamily });
+      
       // Aplicar inmediatamente
       document.documentElement.style.setProperty('--title-font-family', fontFamily);
+      
+      // Actualizar elementos de títulos en tiempo real
+      updateTitleElements(fontFamily, null);
+      
       console.log('Título font changed to:', fontFamily);
     });
   }
@@ -129,8 +155,13 @@ function initializeFontControls() {
     titleFontSizeSlider.addEventListener('input', function() {
       const fontSize = this.value + 'px';
       updateTypography({ titleSize: fontSize });
+      
       // Aplicar inmediatamente
       document.documentElement.style.setProperty('--title-font-size', fontSize);
+      
+      // Actualizar elementos de títulos en tiempo real
+      updateTitleElements(null, fontSize);
+      
       if (titleFontSizeDisplay) {
         titleFontSizeDisplay.textContent = fontSize;
       }
@@ -139,9 +170,52 @@ function initializeFontControls() {
   }
 }
 
+// Función para actualizar elementos de párrafos en tiempo real
+function updateParagraphElements(fontFamily, fontSize) {
+  const paragraphElements = document.querySelectorAll('.example-page p, .example-page label, .example-page .form-control, .example-page .nav-link, .example-page .footer-link, .example-page .hero-description, .example-page .feature-description, .example-page .content-text, .example-page .example-list li, .example-page .footer-text');
+  
+  paragraphElements.forEach(el => {
+    if (fontFamily) {
+      el.style.fontFamily = fontFamily;
+    }
+    if (fontSize) {
+      el.style.fontSize = fontSize;
+    }
+  });
+}
+
+// Función para actualizar elementos de títulos en tiempo real
+function updateTitleElements(fontFamily, fontSize) {
+  const titleElements = document.querySelectorAll('.example-page h1, .example-page h2, .example-page h3, .example-page h4, .example-page h5, .example-page h6, .example-page .site-title, .example-page .hero-title, .example-page .section-title, .example-page .feature-title');
+  
+  titleElements.forEach(el => {
+    if (fontFamily) {
+      el.style.fontFamily = fontFamily;
+    }
+    if (fontSize) {
+      el.style.fontSize = fontSize;
+    }
+  });
+}
+
+// Función para inicializar controles de color
+function initializeColorControls() {
+  const colorInputs = ['headerColor', 'buttonColor', 'bgColor', 'textColor', 'titleColor'];
+  
+  colorInputs.forEach(colorId => {
+    const input = document.getElementById(colorId);
+    if (input) {
+      input.addEventListener('input', function() {
+        // Actualizar inmediatamente la vista
+        applyGlobalConfig();
+      });
+    }
+  });
+}
+
 // Función para cargar la configuración actual en los controles
 function loadCurrentConfig() {
-  // Esperar un poco para que los elementos estén disponibles
+  // Esperar a que los elementos estén disponibles
   setTimeout(() => {
     // Cargar configuración de colores
     const headerColorInput = document.getElementById('headerColor');
@@ -164,20 +238,34 @@ function loadCurrentConfig() {
     const titleFontSizeSlider = document.getElementById('titleFontSize');
     const titleFontSizeDisplay = document.getElementById('titleFontSizeDisplay');
 
-    if (paragraphFontSelect) paragraphFontSelect.value = config.typography.paragraphFont;
+    if (paragraphFontSelect) {
+      paragraphFontSelect.value = config.typography.paragraphFont;
+      // Disparar evento change para aplicar inmediatamente
+      paragraphFontSelect.dispatchEvent(new Event('change'));
+    }
+    
     if (paragraphFontSizeSlider) {
       paragraphFontSizeSlider.value = parseInt(config.typography.paragraphSize);
       if (paragraphFontSizeDisplay) {
         paragraphFontSizeDisplay.textContent = config.typography.paragraphSize;
       }
+      // Disparar evento input para aplicar inmediatamente
+      paragraphFontSizeSlider.dispatchEvent(new Event('input'));
     }
 
-    if (titleFontSelect) titleFontSelect.value = config.typography.titleFont;
+    if (titleFontSelect) {
+      titleFontSelect.value = config.typography.titleFont;
+      // Disparar evento change para aplicar inmediatamente
+      titleFontSelect.dispatchEvent(new Event('change'));
+    }
+    
     if (titleFontSizeSlider) {
       titleFontSizeSlider.value = parseInt(config.typography.titleSize);
       if (titleFontSizeDisplay) {
         titleFontSizeDisplay.textContent = config.typography.titleSize;
       }
+      // Disparar evento input para aplicar inmediatamente
+      titleFontSizeSlider.dispatchEvent(new Event('input'));
     }
 
     console.log('Configuración cargada:', config);
@@ -842,15 +930,10 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
   opacity: 0.8;
 }
 
-/* TEXTO LOCAL (aplicado a elementos personalizables dentro de example-page) */
-.example-page.texto-personalizable, .example-page.texto-personalizable * {
-  font-family: var(--paragraph-font-family) !important;
-  font-size: var(--paragraph-font-size) !important;
-}
-
+/* Asegurar que los estilos se apliquen correctamente */
 .example-page.texto-personalizable p,
 .example-page.texto-personalizable label,
-.example-page.texto-personalizable a,
+.example-page.texto-personalizable a:not(.config-btn):not(.back-to-home),
 .example-page.texto-personalizable .form-control,
 .example-page.texto-personalizable .nav-link,
 .example-page.texto-personalizable .footer-link,
@@ -861,6 +944,7 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
 .example-page.texto-personalizable .footer-text {
   font-family: var(--paragraph-font-family) !important;
   font-size: var(--paragraph-font-size) !important;
+  transition: font-family 0.3s ease, font-size 0.3s ease;
 }
 
 /* Aplicar fuente secundaria a títulos dentro de example-page */
@@ -876,6 +960,7 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
 .example-page.texto-personalizable .feature-title {
   font-family: var(--title-font-family) !important;
   font-size: var(--title-font-size) !important;
+  transition: font-family 0.3s ease, font-size 0.3s ease;
 }
 
 /* Tamaños específicos para diferentes tipos de títulos */
@@ -1554,5 +1639,5 @@ h6:not(.color-sidebar h1):not(.color-sidebar h2):not(.color-sidebar h3):not(.col
   opacity: 0.8;
   text-decoration: none;
 }
-</style>
 
+</style>
