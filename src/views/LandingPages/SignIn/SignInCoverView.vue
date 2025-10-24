@@ -175,6 +175,29 @@
               </select>
           </div>
       </div>
+
+      <!-- Agregar esto en el color-sidebar, después de los selects de fuentes existentes -->
+    <div class="option-group">
+        <label class="option-label">Agregar Fuente Personalizada</label>
+        <input type="file" class="option-input" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" style="display: none;">
+        <button class="config-management-btn secondary" id="openFontFileInput" style="width: 100%; margin-bottom: 10px;">
+            <i class="fas fa-upload"></i> Seleccionar Archivo .ttf
+        </button>
+        <input type="text" class="modal-input" id="customFontName" placeholder="Nombre de la fuente" style="margin-bottom: 10px;">
+        <button class="config-management-btn success" id="addCustomFont" style="width: 100%;" disabled>
+            <i class="fas fa-plus"></i> Agregar Fuente
+        </button>
+        <div id="fontPreview" style="margin-top: 10px; padding: 10px; border: 1px dashed #ddd; border-radius: 5px; display: none;">
+            <div style="font-size: 16px; margin-bottom: 5px;">Vista previa:</div>
+            <div id="fontPreviewText" style="font-size: 18px; font-weight: bold;">AaBbCc 123</div>
+        </div>
+    </div>
+
+    <!-- Lista de fuentes personalizadas agregadas -->
+    <div class="option-group" id="customFontsGroup" style="display: none;">
+        <label class="option-label">Fuentes Personalizadas</label>
+        <div id="customFontsList" class="custom-fonts-list"></div>
+    </div>
       
       <button class="reset-btn" id="resetAll">
           <i class="fas fa-undo"></i> Restablecer Todo
@@ -782,10 +805,10 @@
       }
       
       /* Aplicar color de texto y fuente a todos los elementos */
-      * {
+      .preview-container * {
           color: var(--text-color);
       }
-      
+
       /* Barra de configuración superior - FUENTE FIJA */
       .config-bar {
           background-color: white;
@@ -802,12 +825,17 @@
           z-index: 1100; /* Alto z-index para estar sobre el sidebar */
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
+
+      .config-bar * {
+          color: #333333 !important;
+      }
       
       .config-title {
           font-weight: 600;
           margin: 0;
-          font-size: 1.2rem;
+          font-size: 1.2rem !important;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          color: #333333 !important;
       }
       
       .config-actions {
@@ -822,6 +850,7 @@
           border-radius: 4px;
           cursor: pointer;
           transition: all 0.3s;
+          font-size: 1rem !important;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
@@ -1034,11 +1063,18 @@
           z-index: 1000;
           width: 380px;
           overflow-y: auto;
+          font-size: 1rem !important;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
       .color-sidebar * {
+          font-size: 1rem !important;
+          color: #333333 !important;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+
+      .color-sidebar h4 {
+          font-size: 1.4rem !important;
       }
       
       /* Nuevo Sidebar Derecho para Configuraciones Guardadas */
@@ -1058,7 +1094,13 @@
       }
       
       .config-sidebar * {
+          font-size: 1rem !important;
+          color: #333333 !important;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      }
+
+      .config-sidebar h4 {
+        font-size: 1.4rem !important;
       }
       
       .color-control {
@@ -1109,7 +1151,7 @@
       
       .reset-btn {
           background-color: #6c757d;
-          color: white;
+          color: white !important;
           border: none;
           padding: 15px;
           border-radius: 8px;
@@ -1176,7 +1218,7 @@
       
       .config-management-btn {
           background-color: #007bff;
-          color: white;
+          color: white !important;
           border: none;
           padding: 10px;
           border-radius: 5px;
@@ -1226,10 +1268,12 @@
       
       .notification.success {
           background-color: #28a745;
+          color: white !important;
       }
       
       .notification.error {
           background-color: #dc3545;
+          color: white !important;
       }
       
       .notification.info {
@@ -1343,7 +1387,7 @@
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
+          background-color: #f8f9fa;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1377,6 +1421,9 @@
           margin-top: 0;
           margin-bottom: 15px;
           font-size: 1.3rem;
+          font-size: 1.3rem !important; /* Tamaño relativo pero fijo */
+          color: #333333 !important;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
       .modal-input {
@@ -1385,6 +1432,9 @@
           border: 1px solid #dee2e6;
           border-radius: 5px;
           margin-bottom: 15px;
+          color: #333333 !important;
+          font-size: 14px !important; /* Tamaño fijo para input de modal */
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
       .modal-actions {
@@ -1399,6 +1449,9 @@
           border-radius: 5px;
           cursor: pointer;
           font-weight: 500;
+          color: white !important;
+          font-size: 14px !important; /* Tamaño fijo para botones del modal */
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
       }
       
       .modal-btn.primary {
@@ -1410,7 +1463,39 @@
           background-color: #6c757d;
           color: white;
       }
-      
+
+       .notification {
+           position: fixed;
+           top: 80px;
+           right: 20px;
+           padding: 15px 20px;
+           border-radius: 5px;
+           color: white;
+           font-weight: 500;
+           z-index: 1200;
+           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+           transform: translateX(400px);
+           transition: transform 0.3s ease;
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+           font-size: 16px !important; /* Tamaño fijo para notificaciones */
+       }
+
+       .notification.show {
+           transform: translateX(0);
+       }
+
+       .notification.success {
+           background-color: #28a745;
+       }
+
+       .notification.error {
+           background-color: #dc3545;
+      }
+
+       .notification.info {
+           background-color: #17a2b8;
+      }
+
       .config-item-content {
           display: flex;
           flex-direction: column;
@@ -1440,6 +1525,8 @@
           min-width: 150px;
           display: none;
           border: 1px solid #ddd;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          font-size: 14px !important; /* Tamaño fijo para menú contextual */
       }
       
       .context-menu.show {
@@ -1451,6 +1538,8 @@
           cursor: pointer;
           transition: background-color 0.2s;
           white-space: nowrap; /* Evitar que el texto se rompa */
+          color: #333333 !important;
+          font-size: 14px !important; /* Tamaño fijo para items del menú */
       }
       
       .context-menu-item:hover {
@@ -1466,4 +1555,50 @@
           margin-right: 8px;
           width: 16px;
       }
+
+      /* Estilos para fuentes personalizadas */
+        .custom-fonts-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .custom-font-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #f1f1f1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        .custom-font-item:last-child {
+            border-bottom: none;
+        }
+
+        .custom-font-name {
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        .custom-font-remove {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px !important;
+        }
+
+        .custom-font-remove:hover {
+            background-color: #f8d7da;
+        }
+
+        .font-preview-active {
+            font-family: inherit !important;
+        }
 </style>
